@@ -1,5 +1,8 @@
 # myWolfTeamWork
-现为V5.0的tensorrtx  
+基于    tensorrtx v5.0  
+添加了  上交的四点模型  
+数据处理版本  
+---
 ---
 ① 注意版本  
 ② trtx的 classnum 在推理的时候不用改, 但wts转换engine的时候要改成对应的  

@@ -8,20 +8,30 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/opencv.hpp>
 
-cv::Mat aiMap               = ~ cv::Mat::zeros(808, 448, CV_8UC3);  // 白图
-cv::Mat B3_B7               = ~ cv::Mat::zeros(20,  100, CV_8UC3);
-cv::Mat B1_B4_B6_B9         = ~ cv::Mat::zeros(100, 20,  CV_8UC3);
-cv::Mat B2_B8               = ~ cv::Mat::zeros(80,  20,  CV_8UC3);
-cv::Mat B5                  = cv::Mat::zeros(26,  26,  CV_8UC3);    // 黑图
+#include "conversion_coordinates.hpp"
+#include "correct.hpp"
 
-cv::Mat aiMapShow           = ~ cv::Mat::zeros(808, 448, CV_8UC3);  // 白图
+class MapInfo
+{
+private:
+    cv::Mat aiMap               = ~ cv::Mat::zeros(808, 448, CV_8UC3);  // 白图
+    cv::Mat B3_B7               = ~ cv::Mat::zeros(20,  100, CV_8UC3);
+    cv::Mat B1_B4_B6_B9         = ~ cv::Mat::zeros(100, 20,  CV_8UC3);
+    cv::Mat B2_B8               = ~ cv::Mat::zeros(80,  20,  CV_8UC3);
+    cv::Mat B5                  = cv::Mat::zeros(26,  26,  CV_8UC3);    // 黑图
 
-// float watchDog  = 1768.0;
-// float carHeight = 250.0;
-// float nicetry = carHeight / watchDog ;
+    cv::Mat aiMapShow           = ~ cv::Mat::zeros(808, 448, CV_8UC3);  // 白图
+
+public:
+   MapInfo();
+   ~MapInfo();
+   void showMapInfo();
+   cv::Point2f getTargetPoint(const cv::Point& ptOrigin, const cv::Mat& warpMatrix);
+   void drawCarPosition(auto& capCarPosition, const cv::Mat& warpmatrix, cv::Mat img);
+};
 
 
-void initMap() {
+MapInfo::MapInfo(/* args */) {
     // aiMap = ~aiMap;
     cv::Mat roiB3 = aiMap(cv::Rect(0,       150,      100, 20));    // cv::Rect(左上角的点 和 宽高)
     cv::Mat roiB7 = aiMap(cv::Rect(448-100, 808-170,  100, 20));
@@ -57,13 +67,18 @@ void initMap() {
     aiMap.copyTo(aiMapShow);
 }
 
-void showMapInfo() {
+MapInfo::~MapInfo() {
+    
+}
+
+
+void MapInfo::showMapInfo() {
     cv::imshow("map", aiMapShow);
     aiMap.copyTo(aiMapShow);
 }
 
 
-cv::Point2f getTargetPoint(const cv::Point& ptOrigin, const cv::Mat& warpMatrix) {
+cv::Point2f MapInfo::getTargetPoint(const cv::Point& ptOrigin, const cv::Mat& warpMatrix) {
 	cv::Mat_<double> matPt(3, 1);
 	matPt(0, 0) = ptOrigin.x;
 	matPt(1, 0) = ptOrigin.y;
@@ -76,21 +91,21 @@ cv::Point2f getTargetPoint(const cv::Point& ptOrigin, const cv::Mat& warpMatrix)
 	return cv::Point2f(x * 1.0 / z, y * 1.0 / z);
 }
 
-void drawCarPosition(auto& capCarPosition, const cv::Mat& warpmatrix, cv::Mat img) {
-    if (capCarPosition.class_id == 0) {     // car
+void MapInfo::drawCarPosition(auto& capCarPosition, const cv::Mat& warpmatrix, cv::Mat img) {
+    if (capCarPosition.class_id == 0) {     // 当标签为 0, 即 `car` 的时候, 画一个圆代表车车
         cv::Rect r = get_rect(img, capCarPosition.bbox);
-        // std::cout << "center_x: " << capCarPosition.bbox[0] << std::endl;
-        // std::cout << "center_y: " << capCarPosition.bbox[1] << std::endl;
-        // std::cout << "score:    " << capCarPosition.conf        << std::endl;
+
         cv::Point2f ptOrigin = cv::Point2f(r.x+r.width/2, r.y+r.height/2);
         cv::Point2f carPosition = getTargetPoint(ptOrigin, warpmatrix);
 
-        // carPosition.x = carPosition.x - (nicetry * carPosition.x);
-        // carPosition.y = carPosition.y - (nicetry * carPosition.y);
+        cv::circle(aiMapShow, cv::Point(carPosition.x, carPosition.y), 25, cv::Scalar(0, 255, 0));
 
-        // std::cout << "center_x: " << carPosition.x << std::endl;
-        // std::cout << "center_y: " << carPosition.y << std::endl;
-        cv::circle(aiMapShow, cv::Point(carPosition.x, carPosition.y), 25, cv::Scalar(0, 0, 255));
+        flip_vertical(carPosition.y);   // 垂直翻转
+        correct_function(carPosition.x, carPosition.y);
+        flip_vertical(carPosition.y);   // 垂直翻转
+        // std::cout << "carPosition.x" << carPosition.x << std::endl;
+        // std::cout << "carPosition.y" << carPosition.y << std::endl;
+        cv::circle(aiMapShow, cv::Point(carPosition.x, carPosition.y), 25, cv::Scalar(255, 0, 0));
     }
 }
 

@@ -1,5 +1,5 @@
-#ifndef TRTX_YOLOV5_CAR_POSITION_HPP_
-#define TRTX_YOLOV5_CAR_POSITION_HPP_
+#ifndef TRTX_YOLOV5_WARPMATRIX_IMG_HPP_
+#define TRTX_YOLOV5_WARPMATRIX_IMG_HPP_
 
 #include <iostream>
 #include <opencv2/core.hpp>
@@ -11,7 +11,7 @@
 // 透视变换矩阵
 cv::Mat warpmatrix(3, 3, CV_64FC1);
 
-
+// 点击事件
 static void onMouse1(int event, int x, int y, int, void* userInput) {
     static int          times   = 0;
     static cv::Point2f  fourPoint[4];
@@ -38,6 +38,7 @@ static void onMouse1(int event, int x, int y, int, void* userInput) {
     }
 }
 
+// 获取 透视变换 矩阵
 cv::Mat getTransformMask(cv::Mat& img) {
     while(true){
         cv::imshow("test", img);
@@ -50,13 +51,13 @@ cv::Mat getTransformMask(cv::Mat& img) {
     return warpmatrix;
 }
 
+
+// 显示 透视变换 后的图像
 void showTransformImg(cv::Mat warpmatrix, cv::Mat img) {
     cv::Mat result;
     cv::warpPerspective(img, result, warpmatrix, cv::Size(448, 808),cv::INTER_LINEAR); //result.size(),
     cv::imshow("result", result);
 }
-
-
 
 
 
