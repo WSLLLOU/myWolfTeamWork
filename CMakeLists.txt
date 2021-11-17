@@ -15,9 +15,9 @@ link_directories(/usr/local/cuda/lib64)
 
 
 include_directories(.)
-include_directories(./TRT)
+include_directories(./TRTX)
 include_directories(./opt4)
-add_subdirectory(TRT)
+add_subdirectory(TRTX)
 add_subdirectory(opt4)
 
 add_executable(main yolov5main)
