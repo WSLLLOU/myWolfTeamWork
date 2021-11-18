@@ -28,7 +28,7 @@ typedef struct
 {
     cv::Rect    img_r;
     cv::Point2f carPosition;
-    int         color;      // 0蓝 1红 3黑
+    int         color;      // 0蓝 1红 2黑
     int         num;        // 1 / 2
 } car;
 
@@ -36,7 +36,7 @@ typedef struct
 typedef struct
 {
     cv::Point   img_center;
-    int         color;      // 0蓝 1红 3黑
+    int         color;      // 0蓝 1红 2黑
     int         num;        // 1 / 2
 } armor;
 
@@ -83,7 +83,7 @@ void classify(std::vector<Yolo::Detection> res, std::vector<bbox_t> detections, 
     // 上交四点模型
     // 四点     detections[i].pts               [0] [1] [2] [3]
     // 数字     detections[i].tag_id            1   2   3   4   5
-    // 颜色     detections[i].color_id          0蓝 1红 3黑
+    // 颜色     detections[i].color_id          0蓝 1红 2黑
     for (int j = 0; j < detections.size(); j++) {
         armor       temp_armor;
         cv::Point2f img_armor_center;
@@ -93,7 +93,7 @@ void classify(std::vector<Yolo::Detection> res, std::vector<bbox_t> detections, 
         temp_armor.img_center = img_armor_center;
 
         // color
-        temp_armor.color = detections[j].color_id;  // 0蓝 1红 3黑
+        temp_armor.color = detections[j].color_id;  // 0蓝 1红 2黑
 
         // armor_num
         if( detections[j].tag_id == 2 ) {
