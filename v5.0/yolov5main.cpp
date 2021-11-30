@@ -4,7 +4,7 @@
 #include "map_info.hpp"
 #include "message.hpp"
 
-#define MAPINFO_OFF
+// #define MAPINFO_OFF
 
 int main(int argc, char **argv) {
     std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx_v5.0/v5.0/build/engine/m43best_25epochs.engine";
@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
 
     cv::VideoCapture cap(img_dir);  // cap捕捉图片流
 
-    start(engine_name);             // yolov5.hpp
+    TRTX WSL(engine_name);             // yolov5.hpp
 
     TRTModule model("/home/wsl/wolf_workspace/tensorrtx_v5.0/v5.0/opt4/model-opt-4.onnx");
 
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
         auto start = std::chrono::system_clock::now();
 
         cap.read(img);
-        auto res = yolov5_v5_Rtx_start(img);                // 中科院数据集 yolov5模型 推理
+        auto res = WSL(img);                // 中科院数据集 yolov5模型 推理
         auto detections = model(img);                       // 上交 四点模型推理
 
 #ifndef MAPINFO_OFF
@@ -71,7 +71,6 @@ int main(int argc, char **argv) {
 #endif  // MAPINFO_OFF
 
         if (cv::waitKey(1) == 'q') {
-            destroy();                                      // yolov5.hpp
             break;
         }
 
