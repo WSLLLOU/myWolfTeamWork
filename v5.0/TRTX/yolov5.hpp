@@ -52,7 +52,7 @@ class TRTX {
         ~TRTX ();
         // void init ();
         void doInference (IExecutionContext& context, cudaStream_t& stream, void **buffers, float* input, float* output, int batchSize);
-        std::vector<Yolo::Detection> operator() (cv::Mat img);
+        std::vector<Yolo::Detection> operator() (cv::Mat& img);
 };
 
 
@@ -132,7 +132,7 @@ TRTX::TRTX (std::string& engine_name) {
     CUDA_CHECK(cudaStreamCreate(&stream));
 }
 
-std::vector<Yolo::Detection> TRTX::operator()(cv::Mat img) {
+std::vector<Yolo::Detection> TRTX::operator()(cv::Mat& img) {
     if (img.empty()) {
         std::cout << "Fail to read image from camera!" << std::endl;
         // return error;
