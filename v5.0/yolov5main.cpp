@@ -73,8 +73,8 @@ int main(int argc, char **argv) {
     // plz duguxiaochong program
     zmq::context_t  ip_context(1);
     zmq::socket_t   publisher(ip_context, zmq::socket_type::pub);
-    zmq::message_t  send_message(sizeof(CarPositionSend));
     publisher.bind("tcp://*:5556");
+    zmq::message_t  send_message(sizeof(CarPositionSend));
     */
 
     
