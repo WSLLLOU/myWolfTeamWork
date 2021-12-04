@@ -1,3 +1,5 @@
+#ifndef _YOLOV5_HPP_
+#define _YOLOV5_HPP_
 #include <iostream>
 #include <chrono>
 #include <cmath>
@@ -152,10 +154,10 @@ std::vector<Yolo::Detection> TRTX::operator()(cv::Mat& img) {
     }
 
     // 推理 以及 输出推理时间
-    auto start = std::chrono::system_clock::now();
+    // auto start = std::chrono::system_clock::now();
     doInference(*context, stream, buffers, data, prob, BATCH_SIZE);
-    auto end = std::chrono::system_clock::now();
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+    // auto end = std::chrono::system_clock::now();
+    // std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
     std::vector<std::vector<Yolo::Detection>> batch_res(1);
     // GG
@@ -164,3 +166,5 @@ std::vector<Yolo::Detection> TRTX::operator()(cv::Mat& img) {
 
     return batch_res[0];
 }
+
+#endif // _YOLOV5_HPP_
