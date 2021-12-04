@@ -23,3 +23,4 @@ add_subdirectory(opt4)
 add_executable(main yolov5main)
 target_link_libraries(main yolov5)    # fmt::fmt
 target_link_libraries(main opt4)
+target_link_libraries(main -lzmq)
