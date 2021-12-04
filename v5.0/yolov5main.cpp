@@ -14,8 +14,6 @@ cv::Mat warpmatrix(3, 3, CV_64FC1);
 static void onMouse1(int event, int x, int y, int, void* userInput) {
     static int          times   = 0;
     static cv::Point2f  fourPoint[4];
-    // cv::Mat             src, dst;
-	// dst.copyTo(src);
 	if (event != cv::EVENT_LBUTTONDOWN) {
         return;
     }
@@ -70,17 +68,22 @@ int main(int argc, char **argv) {
     Monitoring wolfEye(warpmatrix);         // 哨岗类
     MapInfo mapInfo(wolfEye.getmatrix());   // 俯视图显示类
     Message chong;                          // 传输数据处理类
-    static CarPositionSend chongxy;         // 要传输的数据结构变量
+    static CarPositionSend chongXY;         // 要传输的数据结构变量
     /*
-        plz duguxiaochong program
+    // plz duguxiaochong program
+    zmq::context_t  ip_context(1);
+    zmq::socket_t   publisher(ip_context, zmq::socket_type::pub);
+    zmq::message_t  send_message(sizeof(CarPositionSend));
+    publisher.bind("tcp://*:5556");
     */
 
+    
     while (true) {
         auto start = std::chrono::system_clock::now();
 
         cap.read(img);
-        auto car = wsl(img);
-        auto armor = model(img);
+        auto car = wsl(img);                    // 检测 车车
+        auto armor = model(img);                // 检测 装甲板 opt4
 
         wolfEye.run(car, armor, img, result);   // 得出结果 ————> result 
 
@@ -136,11 +139,13 @@ int main(int argc, char **argv) {
         //     std::cout << std::endl;
         // }
 
-        chongxy = chong(result);
+        chongXY = chong(result);
 
         /*
-            send(chongxy);
-            plz duguxiaochong program
+        // send(chongXY);
+        // plz duguxiaochong program
+        memcpy(send_message.data(), &chongXY, sizeof(chongXY));
+        publisher.send(send_message);
         */
 
         if (cv::waitKey(1) == 'q') {
