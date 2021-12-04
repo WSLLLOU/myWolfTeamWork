@@ -69,14 +69,14 @@ int main(int argc, char **argv) {
     MapInfo mapInfo(wolfEye.getmatrix());   // 俯视图显示类
     Message chong;                          // 传输数据处理类
     static CarPositionSend chongXY;         // 要传输的数据结构变量
+    
     /*
     // plz duguxiaochong program
     zmq::context_t  ip_context(1);
     zmq::socket_t   publisher(ip_context, zmq::socket_type::pub);
     publisher.bind("tcp://*:5556");
-    zmq::message_t  send_message(sizeof(CarPositionSend));
+    // zmq::message_t  send_message(sizeof(CarPositionSend));   // 为什么不重新申请这个变量, 会报错 `Check the validity of the message`
     */
-
     
     while (true) {
         auto start = std::chrono::system_clock::now();
@@ -144,6 +144,7 @@ int main(int argc, char **argv) {
         /*
         // send(chongXY);
         // plz duguxiaochong program
+        zmq::message_t  send_message(sizeof(CarPositionSend));
         memcpy(send_message.data(), &chongXY, sizeof(chongXY));
         publisher.send(send_message);
         */
