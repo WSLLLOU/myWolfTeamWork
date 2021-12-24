@@ -11,7 +11,7 @@
 
 typedef struct
 {
-    cv::Rect    img_r;              // `图像`上的矩形框信息
+    cv::Rect    img_r;              // `图像`上的车车下半身矩形框 --> 用于寻找装甲板的存在roi
     cv::Point2f carPosition;        // 矫正前的`世界地图`上的坐标点
     cv::Point2f carPositionFixed;   // 矫正后的`世界地图`上的坐标点
     int         color;              // 0蓝 1红 2黑
@@ -89,6 +89,8 @@ void Monitoring::analyseData(std::vector<Yolo::Detection>& rtxCars, std::vector<
         temp_r  = get_rect(img, rtxCars[j].bbox);
 
         if (rtxCars[j].class_id == 0) {             // 0 'car'
+            temp_r                      = temp_r + cv::Point(0, temp_r.height/2);       //平移，左上顶点的 `x坐标`不变，`y坐标` +temp_r.height/2
+            temp_r                      = temp_r + cv::Size (0, -temp_r.height/2);      //缩放，左上顶点不变，宽度不变，高度减半
             temp_car.img_r              = temp_r;
             temp_car.carPosition        = getTargetPoint(cv::Point2f(temp_r.x+temp_r.width/2, temp_r.y+temp_r.height/2));
             temp_car.carPositionFixed   = cv::Point2f(-1.0, -1.0);
