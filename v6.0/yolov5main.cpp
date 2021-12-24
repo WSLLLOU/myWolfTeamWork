@@ -91,12 +91,16 @@ int main(int argc, char **argv) {
         // 
         mapInfo.showTransformImg(img);                          // ++ 显示透视变换后的图片   
         mapInfo.showMapInfo(result);                            // ++ 显示模拟地图    
+#endif  // MAPINFO_OFF
 
+#ifndef SHOW_IMG
     // 在原图上绘制检测结果 start
         // 绘制 矩形(rectangle) 和 类编号(class_id)
         for (size_t j = 0; j < car.size(); j++) {               // car.size() 该图检测到多少个class
             if( car[j].class_id == 0) {
-                cv::Rect r = get_rect(img, car[j].bbox);
+                cv::Rect r  = get_rect(img, car[j].bbox);
+                // r           = r + cv::Point(0, r.height/2);       //平移，左上顶点的 `x坐标`不变，`y坐标` +r.height/2
+                // r           = r + cv::Size (0, -r.height/2);      //缩放，左上顶点不变，宽度不变，高度减半
                 cv::rectangle(img, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
                 cv::putText(img, std::to_string((int)car[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
             }
@@ -112,9 +116,6 @@ int main(int argc, char **argv) {
             cv::putText(img, std::to_string(b.tag_id), b.pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, colors[b.color_id]);
         }
     // 在原图上绘制检测结果 end
-#endif  // MAPINFO_OFF
-
-#ifndef SHOW_IMG
         cv::imshow("yolov5", img);
 #endif // SHOW_IMG
 
