@@ -89,13 +89,14 @@ void Monitoring::analyseData(std::vector<Yolo::Detection>& rtxCars, std::vector<
         temp_r  = get_rect(img, rtxCars[j].bbox);
 
         if (rtxCars[j].class_id == 0) {             // 0 'car'
-            temp_r                      = temp_r + cv::Point(0, temp_r.height/2);       //平移，左上顶点的 `x坐标`不变，`y坐标` +temp_r.height/2
-            temp_r                      = temp_r + cv::Size (0, -temp_r.height/2);      //缩放，左上顶点不变，宽度不变，高度减半
-            temp_car.img_r              = temp_r;
-            temp_car.carPosition        = getTargetPoint(cv::Point2f(temp_r.x+temp_r.width/2, temp_r.y+temp_r.height/2));
+            temp_car.carPosition        = getTargetPoint(cv::Point2f(temp_r.x+temp_r.width/2, temp_r.y+temp_r.height/2));   // 透视变换矩形 对 车体检测框中心点 进行坐标转化 
             temp_car.carPositionFixed   = cv::Point2f(-1.0, -1.0);
             temp_car.color              = -1;
             temp_car.num                = -1;
+            // 修改矩形框的大小，基于左下角垂直缩小一半，便于分类装甲板的归属
+            temp_r                      = temp_r + cv::Point(0, temp_r.height/2);       //平移，左上顶点的 `x坐标`不变，`y坐标` +temp_r.height/2
+            temp_r                      = temp_r + cv::Size (0, -temp_r.height/2);      //缩放，左上顶点不变，宽度不变，高度减半
+            temp_car.img_r              = temp_r;
             
             // 
             allCar.push_back(temp_car);
