@@ -86,9 +86,12 @@ void MapInfo::showMapInfo(std::vector<car>& result) {
 }
 
 void MapInfo::drawCarPosition(std::vector<car>& result) {
+    static const cv::Scalar colors[] = {{0,0,0}, {255,0,0}, {0,0,255}, {0,0,0}};
     for (car& p: result) {
         cv::circle(aiMapShow, cv::Point(p.carPosition.x, p.carPosition.y),              25, cv::Scalar(0, 255, 0)); // 矫正前的
-        cv::circle(aiMapShow, cv::Point(p.carPositionFixed.x, p.carPositionFixed.y),    25, cv::Scalar(255, 0, 0)); // 矫正后的
+        
+        cv::circle(aiMapShow, cv::Point(p.carPositionFixed.x, p.carPositionFixed.y),    25, colors[p.color+1], -1); // 矫正后的
+        cv::putText(aiMapShow, std::to_string((int)p.num), cv::Point(p.carPositionFixed.x - 6, p.carPositionFixed.y + 6), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
     }
 }
 
