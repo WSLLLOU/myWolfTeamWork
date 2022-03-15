@@ -28,10 +28,17 @@ typedef struct
 // 求旋转矩形四点中心
 cv::Point2f opt4ToCenter(const cv::Point2f pts[]) {
     static cv::Point2f center;
-
     center.x = (pts[0].x + pts[1].x + pts[2].x + pts[3].x) / 4.0;
     center.y = (pts[0].y + pts[1].y + pts[2].y + pts[3].y) / 4.0;
+    return center;
+}
 
+// 求矩形中心点
+cv::Point getCenterPoint(const cv::Rect &rect)
+{
+    static cv::Point2f center;
+    center.x = rect.x + cvRound(rect.width  / 2.0);
+    center.y = rect.y + cvRound(rect.height / 2.0);
     return center;
 }
 
@@ -50,7 +57,7 @@ class Monitoring {
         Monitoring(cv::Mat& warpmatrix);
         ~Monitoring();
         cv::Point2f     getTargetPoint (const cv::Point& ptOrigin);
-        void            analyseData(std::vector<Yolo::Detection>& rtxCars, std::vector<bbox_t>& opt4Armor, std::vector<car>& allCar, std::vector<armor>& allArmor, cv::Mat& img, cv::Mat& warpmatrix);
+        void            analyseData(std::vector<Yolo::Detection>& predicts, std::vector<bbox_t>& opt4Armor, std::vector<car>& allCar, std::vector<armor>& allArmor, cv::Mat& img, cv::Mat& warpmatrix);
         void            run (std::vector<Yolo::Detection>& rtxCars, std::vector<bbox_t>& opt4Armor, cv::Mat& img, std::vector<car>& result);
         void            fixCarPosition(std::vector<car>& allCar);
         inline cv::Mat& getmatrix()  { return this->warpmatrix; }
@@ -80,19 +87,23 @@ cv::Point2f Monitoring::getTargetPoint(const cv::Point& ptOrigin) {
 }
 
 // 分析参数 到 --> allCar 
-void Monitoring::analyseData(std::vector<Yolo::Detection>& rtxCars, std::vector<bbox_t>& opt4Armor, std::vector<car>& allCar, std::vector<armor>& allArmor, cv::Mat& img, cv::Mat& warpmatrix) {
+void Monitoring::analyseData(std::vector<Yolo::Detection>& predicts, std::vector<bbox_t>& opt4Armor, std::vector<car>& allCar, std::vector<armor>& allArmor, cv::Mat& img, cv::Mat& warpmatrix) {
     // 分类数据（分析）
     // 分到 allCar 和 allArmor
-    for (size_t j = 0; j < rtxCars.size(); j++) {   // rtxCars.size() 该图检测到多少个物体
+    for (Yolo::Detection &predict : predicts) {   // predicts.size() 该图检测到多少个物体
+        // car
         static car      temp_car;
         static cv::Rect temp_r;
-        temp_r  = get_rect(img, rtxCars[j].bbox);
+        temp_r  = get_rect(img, predict.bbox);
+        // armor
+        static armor       temp_armor;
+        static cv::Point2f img_armor_center;
 
-        if (rtxCars[j].class_id == 0) {             // 0 'car'
+        if (predict.class_id == 0) {             // 0 'car'
             temp_car.carPosition        = getTargetPoint(cv::Point2f(temp_r.x+temp_r.width/2, temp_r.y+temp_r.height/2));   // 透视变换矩形 对 车体检测框中心点 进行坐标转化 
             temp_car.carPositionFixed   = cv::Point2f(-1.0, -1.0);
-            temp_car.color              = -1;
-            temp_car.num                = -1;
+            temp_car.color              = -1;   // 初始化 -1
+            temp_car.num                = -1;   // 初始化 -1
             // 修改矩形框的大小，基于左下角垂直缩小一半，便于分类装甲板的归属
             temp_r                      = temp_r + cv::Point(0, temp_r.height/2);       //平移，左上顶点的 `x坐标`不变，`y坐标` +temp_r.height/2
             temp_r                      = temp_r + cv::Size (0, -temp_r.height/2);      //缩放，左上顶点不变，宽度不变，高度减半
@@ -100,8 +111,40 @@ void Monitoring::analyseData(std::vector<Yolo::Detection>& rtxCars, std::vector<
             // 
             allCar.push_back(temp_car);
         }
+        else {
+            // img_center
+            img_armor_center = getCenterPoint(get_rect(img, predict.bbox));
+            temp_armor.img_center = img_armor_center;
+
+            // color && armor_num
+            // color // 0蓝 1红 2黑
+            // armor // 1 / 2
+            if (predict.class_id == 1) {
+                temp_armor.color    = 0;
+                temp_armor.num      = 1;
+            }
+            else if (predict.class_id == 2) {
+                temp_armor.color    = 0;
+                temp_armor.num      = 2;
+            }
+            else if (predict.class_id == 3) {
+                temp_armor.color    = 1;
+                temp_armor.num      = 1;
+            }
+            else if (predict.class_id == 4) {
+                temp_armor.color    = 1;
+                temp_armor.num      = 2;
+            }
+            else if (predict.class_id == 5) {
+                temp_armor.color    = 2;
+                temp_armor.num      = -1;       // 主不关心，死车号数
+            }
+
+            allArmor.push_back(temp_armor);
+        }
     }
 
+/*
     // 上交四点模型
     // 四点     opt4Armor[i].pts               [0] [1] [2] [3]
     // 数字     opt4Armor[i].tag_id            1   2   3   4   5
@@ -128,6 +171,7 @@ void Monitoring::analyseData(std::vector<Yolo::Detection>& rtxCars, std::vector<
         // 
         allArmor.push_back(temp_armor);
     }
+*/
 
     // rect.contains(cv::Point(x, y));              //返回布尔变量，判断rect是否包含Point(x, y)点
     // center (r.x+r.width/2, r.y+r.height/2)

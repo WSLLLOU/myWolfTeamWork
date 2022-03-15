@@ -51,7 +51,7 @@ void getWarpMatrix(cv::Mat& img) {
 
 int main(int argc, char **argv) {
     std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx/yolov5/50aicar.engine";
-    std::string img_dir     = "/home/wsl/wolf_workspace/yoloCustomData/tempVideo/ai/a1b.avi";
+    std::string img_dir     = "/home/wsl/wolf_workspace/yoloCustomData/tempVideo/ai/a1r.avi";
 
     cv::VideoCapture    cap(img_dir);  // cap捕捉图片流
     // cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 
     std::vector<car>    result;        // 捕获结果 [模型推理后的信息处理结果 --> 详情看car结构体]
     TRTX                wsl(engine_name);
-    TRTModule           model("/home/wsl/myWolfTeamWorking/v6.0/opt4/model-opt-4.onnx");
+    // TRTModule           model("/home/wsl/myWolfTeamWorking/v6.0/opt4/model-opt-4.onnx");
     cv::Mat             img;
 
     mindvision::VideoCapture mv_capture_ = mindvision::VideoCapture(
@@ -87,14 +87,14 @@ int main(int argc, char **argv) {
     Monitoring wolfEye(warpmatrix);         // 哨岗类
     MapInfo mapInfo(wolfEye.getmatrix());   // 俯视图显示类
     Message chong;                          // 传输数据处理类
-    static CarPositionSend chongXY;         // 要传输的数据结构变量
+    static CarInfoSend chongXY;         // 要传输的数据结构变量
     
     /*
     // plz duguxiaochong program
     zmq::context_t  ip_context(1);
     zmq::socket_t   publisher(ip_context, zmq::socket_type::pub);
     publisher.bind("tcp://*:5556");
-    // zmq::message_t  send_message(sizeof(CarPositionSend));   // 为什么不重新申请这个变量, 会报错 `Check the validity of the message`
+    // zmq::message_t  send_message(sizeof(CarInfoSend));   // 为什么不重新申请这个变量, 会报错 `Check the validity of the message`
     */
     
     while (true) {
@@ -107,15 +107,10 @@ int main(int argc, char **argv) {
             cap.read(img);
         }
 
-        // auto carstart = std::chrono::system_clock::now();
         auto car = wsl(img);                    // 检测 车车
-        // auto carend = std::chrono::system_clock::now();
-        // std::cout << "检测车车 "<< std::chrono::duration_cast<std::chrono::milliseconds>(carend - carstart).count() << "ms" << std::endl;
 
-        // auto armorstart = std::chrono::system_clock::now();
-        auto armor = model(img);                // 检测 装甲板 opt4
-        // auto armorend = std::chrono::system_clock::now();
-        // std::cout << "检测装甲板"<< std::chrono::duration_cast<std::chrono::milliseconds>(armorend - armorstart).count() << "ms" << std::endl;
+        std::vector<bbox_t> armor;
+        // armor = model(img);                     // 检测 装甲板 opt4
 
         wolfEye.run(car, armor, img, result);   // 得出结果 ————> result 
 
@@ -138,6 +133,7 @@ int main(int argc, char **argv) {
             // }
         }
 
+/*
         // 在原图上画装甲板opt4
         const cv::Scalar colors[3] = {{255, 0, 0}, {0, 0, 255}, {0, 255, 0}};
         for (const auto &b : armor) {
@@ -147,6 +143,8 @@ int main(int argc, char **argv) {
             cv::line(img, b.pts[3], b.pts[0], colors[2], 2);
             cv::putText(img, std::to_string(b.tag_id), b.pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, colors[b.color_id]);
         }
+*/
+
     // 在原图上绘制检测结果 end
         cv::imshow("yolov5", img);
 #endif // SHOW_IMG
@@ -156,7 +154,7 @@ int main(int argc, char **argv) {
         /*
         // send(chongXY);
         // plz duguxiaochong program
-        zmq::message_t  send_message(sizeof(CarPositionSend));
+        zmq::message_t  send_message(sizeof(CarInfoSend));
         memcpy(send_message.data(), &chongXY, sizeof(chongXY));
         publisher.send(send_message);
         */
