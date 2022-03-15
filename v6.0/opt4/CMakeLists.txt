@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 project(opt4)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})  # CMAKE_CURRENT_SOURCE_DIR --> 这是当前处理的CMakeLists.txt所在的目录
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})  # CMAKE_CURRENT_SOURCE_DIR --> 这是当前的CMakeLists.txt所在的目录
 
 find_package(TensorRT REQUIRED)
 find_package(OpenCV 4 REQUIRED)

@@ -5,8 +5,11 @@
 #include "Message.hpp"
 #include <zmq.hpp>
 
-#define MAPINFO_OFF
-#define SHOW_IMG
+#include "mv_video_capture.hpp"
+// #include "fps.hpp"
+
+// #define MAPINFO_OFF
+// #define SHOW_IMG
 
 // 旋转矩阵
 cv::Mat warpmatrix(3, 3, CV_64FC1);
@@ -47,23 +50,39 @@ void getWarpMatrix(cv::Mat& img) {
 
 
 int main(int argc, char **argv) {
-    std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx_v5.0/v5.0/build/engine/m43best_25epochs.engine";
-    std::string img_dir     = "/home/wsl/下载/哨岗2亮度稍暗.avi";
+    std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx/yolov5/50aicar.engine";
+    std::string img_dir     = "/home/wsl/wolf_workspace/yoloCustomData/tempVideo/ai/a1b.avi";
 
     cv::VideoCapture    cap(img_dir);  // cap捕捉图片流
-    std::vector<car>    result;        // 捕获结果 [模型推理后的信息处理结果 --> 详情看car结构体]
-    TRTX                wsl(engine_name);
-    TRTModule           model("/home/wsl/wolf_workspace/tensorrtx_v5.0/v5.0/opt4/model-opt-4.onnx");
-    cv::Mat             img;
     // cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
 	// cap.set(cv::CAP_PROP_FRAME_HEIGHT, 800);
-    // 检测是否有相机
+
+    std::vector<car>    result;        // 捕获结果 [模型推理后的信息处理结果 --> 详情看car结构体]
+    TRTX                wsl(engine_name);
+    TRTModule           model("/home/wsl/myWolfTeamWorking/v6.0/opt4/model-opt-4.onnx");
+    cv::Mat             img;
+
+    mindvision::VideoCapture mv_capture_ = mindvision::VideoCapture(
+                                                    mindvision::CameraParam(1,          // 0--工业相机, 1--其他免驱相机
+                                                                            mindvision::RESOLUTION_1280_X_1024,
+                                                                            mindvision::EXPOSURE_20000
+                                                                            )
+                                                                        );
+    // fps::FPS       global_fps_;
+
+    // 检测是否有免驱相机
     if (!cap.isOpened()) {
         std::cout << "Error opening video stream or file" << std::endl;
         return -1;
     }
-    cap.read(img);
-    getWarpMatrix(img);
+    if (mv_capture_.isindustryimgInput()) {
+        img = mv_capture_.image();
+    }
+    else {
+        cap.read(img);
+    }
+
+    getWarpMatrix(img);                     // 手动点四点透视变换
 
     Monitoring wolfEye(warpmatrix);         // 哨岗类
     MapInfo mapInfo(wolfEye.getmatrix());   // 俯视图显示类
@@ -81,9 +100,22 @@ int main(int argc, char **argv) {
     while (true) {
         auto start = std::chrono::system_clock::now();
 
-        cap.read(img);
+        if (mv_capture_.isindustryimgInput()) {
+            img = mv_capture_.image();
+        }
+        else {
+            cap.read(img);
+        }
+
+        // auto carstart = std::chrono::system_clock::now();
         auto car = wsl(img);                    // 检测 车车
+        // auto carend = std::chrono::system_clock::now();
+        // std::cout << "检测车车 "<< std::chrono::duration_cast<std::chrono::milliseconds>(carend - carstart).count() << "ms" << std::endl;
+
+        // auto armorstart = std::chrono::system_clock::now();
         auto armor = model(img);                // 检测 装甲板 opt4
+        // auto armorend = std::chrono::system_clock::now();
+        // std::cout << "检测装甲板"<< std::chrono::duration_cast<std::chrono::milliseconds>(armorend - armorstart).count() << "ms" << std::endl;
 
         wolfEye.run(car, armor, img, result);   // 得出结果 ————> result 
 
@@ -97,13 +129,13 @@ int main(int argc, char **argv) {
     // 在原图上绘制检测结果 start
         // 绘制 矩形(rectangle) 和 类编号(class_id)
         for (size_t j = 0; j < car.size(); j++) {               // car.size() 该图检测到多少个class
-            if( car[j].class_id == 0) {
+            // if( car[j].class_id == 0) {
                 cv::Rect r  = get_rect(img, car[j].bbox);
                 // r           = r + cv::Point(0, r.height/2);       //平移，左上顶点的 `x坐标`不变，`y坐标` +r.height/2
                 // r           = r + cv::Size (0, -r.height/2);      //缩放，左上顶点不变，宽度不变，高度减半
-                cv::rectangle(img, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
+                cv::rectangle(img, r, cv::Scalar(0xff, 0xff, 0xff), 2);
                 cv::putText(img, std::to_string((int)car[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-            }
+            // }
         }
 
         // 在原图上画装甲板opt4
@@ -119,27 +151,6 @@ int main(int argc, char **argv) {
         cv::imshow("yolov5", img);
 #endif // SHOW_IMG
 
-        // for (auto i = result.begin(); i != result.end(); i++) {
-        //     if ((*i).color == 0) {
-        //         std::cout << "    car_color:    blue" << std::endl;
-        //     }
-        //     else if ((*i).color == 1) {
-        //         std::cout << "    car_color:    red" << std::endl;
-        //     }
-        //     else if ((*i).color == 2) {
-        //         std::cout << "    car_color:    gray" << std::endl;
-        //     }
-        //     else if ((*i).color == -1) {
-        //         std::cout << "    car_color:    I don't know" << std::endl;
-        //     }
-        //     std::cout << "      car_num:    " << (*i).num << std::endl;
-        //     std::cout << "carPosition_x:    " << (*i).carPosition.x << std::endl;
-        //     std::cout << "carPosition_y:    " << (*i).carPosition.y << std::endl;
-        //     std::cout << "carPositionFix_x: " << (*i).carPositionFixed.x << std::endl;
-        //     std::cout << "carPositionFix_y: " << (*i).carPositionFixed.y << std::endl;
-        //     std::cout << std::endl;
-        // }
-
         chongXY = chong(result);
 
         /*
@@ -153,8 +164,9 @@ int main(int argc, char **argv) {
         if (cv::waitKey(1) == 'q') {
             break;
         }
-
+        mv_capture_.cameraReleasebuff();   // 释放这一帧的内容
         auto end = std::chrono::system_clock::now();
         std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
     }
+    cap.release();
 }
