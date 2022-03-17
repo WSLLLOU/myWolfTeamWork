@@ -11,7 +11,7 @@
 #define USE_FP16  // set USE_INT8 or USE_FP16 or USE_FP32           // 构建 .engine 模型的时候用的，可以注释掉了，但我懒
 #define DEVICE 0  // GPU id
 #define NMS_THRESH 0.4
-#define CONF_THRESH 0.5
+#define CONF_THRESH 0.75
 #define BATCH_SIZE 1
 #define MAX_IMAGE_INPUT_SIZE_THRESH 3000 * 3000 // ensure it exceed the maximum size in the input images !
 
