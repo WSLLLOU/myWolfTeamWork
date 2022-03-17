@@ -92,7 +92,7 @@ void Message::init() {
     PC_1.red2_2.y = -1;
 }
 
-double getDistance(const cv::Point2f& point1, const cv::Point2f& point2) {
+float getDistance(const cv::Point2f& point1, const cv::Point2f& point2) {
     static double distance;
     distance = sqrtf(powf((point1.x - point2.x),2) + powf((point1.y - point2.y),2));
     return distance;
@@ -207,7 +207,6 @@ void CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1_2, cv::P
         }
         // 反之
         else {
-            // CarLocation1 无需改动
             CarLocation1    = getMean(CarLocation1, CarLocation2_2);
             CarLocation1_2  = CarLocation2;
             swapPointCheck(CarLocation1, CarLocation1_2);
@@ -217,9 +216,20 @@ void CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1_2, cv::P
     else if ( (CarLocation1   != cv::Point2f(-1,-1) && CarLocation2   != cv::Point2f(-1,-1)) &&
               (CarLocation1_2 != cv::Point2f(-1,-1) && CarLocation2_2 != cv::Point2f(-1,-1))
     ) {
-        // // 相信单哨岗的 y轴从小到大排序放置 和 位置交换?
-        // CarLocation1    = getDistance(CarLocation1,     CarLocation2);
-        // CarLocation1_2  = getDistance(CarLocation1_2,   CarLocation2_2);
+        // 相信单哨岗的 y轴从小到大排序放置 和 位置交换?
+        float distanceCar_1  = getDistance(CarLocation1, CarLocation2);
+        float distanceCar_2  = getDistance(CarLocation1, CarLocation2_2);
+        if (distanceCar_1 < distanceCar_2) {
+            CarLocation1    = getMean(CarLocation1,   CarLocation2);
+            CarLocation1_2  = getMean(CarLocation1_2, CarLocation2_2);
+            swapPointCheck(CarLocation1, CarLocation1_2);
+        }
+        // 反之
+        else {
+            CarLocation1    = getMean(CarLocation1,   CarLocation2_2);
+            CarLocation1_2  = getMean(CarLocation1_2, CarLocation2);
+            swapPointCheck(CarLocation1, CarLocation1_2);
+        }
     }
 }
 
