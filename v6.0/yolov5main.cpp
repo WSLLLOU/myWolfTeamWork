@@ -10,6 +10,8 @@
 
 // #define MAPINFO_OFF
 // #define SHOW_IMG
+// #define SHOW_RUNTIME_1
+// #define SHOW_RUNTIME_2
 
 // 旋转矩阵
 cv::Mat warpmatrix(3, 3, CV_64FC1);
@@ -51,7 +53,7 @@ void getWarpMatrix(cv::Mat& img) {
 
 int main(int argc, char **argv) {
     std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx/yolov5/50aicar.engine";
-    std::string img_dir     = "/home/wsl/wolf_workspace/yoloCustomData/tempVideo/ai/a1r.avi";
+    std::string img_dir     = "/home/wsl/wolf_workspace/yoloCustomData/5000曝光2.avi";
 
     cv::VideoCapture    cap(img_dir);  // cap捕捉图片流
     // cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
@@ -87,19 +89,23 @@ int main(int argc, char **argv) {
     Monitoring wolfEye(warpmatrix);         // 哨岗类
     MapInfo mapInfo(wolfEye.getmatrix());   // 俯视图显示类
     Message chong;                          // 传输数据处理类
-    static CarInfoSend chongXY;         // 要传输的数据结构变量
+    static CarInfoSend PC_1;              // 要传输的数据结构变量
     
-    /*
-    // plz duguxiaochong program
+    // 初始化 发送
     zmq::context_t  ip_context(1);
     zmq::socket_t   publisher(ip_context, zmq::socket_type::pub);
     publisher.bind("tcp://*:5556");
-    // zmq::message_t  send_message(sizeof(CarInfoSend));   // 为什么不重新申请这个变量, 会报错 `Check the validity of the message`
-    */
-    
-    while (true) {
-        auto start = std::chrono::system_clock::now();
+    // 初始化 接收
+    zmq::context_t receive_context(1);
+    zmq::socket_t subscriber(receive_context, ZMQ_SUB);
+    subscriber.connect("tcp://localhost:5556");
+    subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+    CarInfoSend PC_2 = CarInfoSend{};
 
+    while (true) {
+#ifndef SHOW_RUNTIME_1
+        auto start = std::chrono::system_clock::now();
+#endif  // SHOW_RUNTIME_1
         if (mv_capture_.isindustryimgInput()) {
             img = mv_capture_.image();
         }
@@ -115,7 +121,6 @@ int main(int argc, char **argv) {
         wolfEye.run(car, armor, img, result);   // 得出结果 ————> result 
 
 #ifndef MAPINFO_OFF
-        // 
         mapInfo.showTransformImg(img);                          // ++ 显示透视变换后的图片   
         mapInfo.showMapInfo(result);                            // ++ 显示模拟地图    
 #endif  // MAPINFO_OFF
@@ -132,7 +137,6 @@ int main(int argc, char **argv) {
                 cv::putText(img, std::to_string((int)car[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
             // }
         }
-
 /*
         // 在原图上画装甲板opt4
         const cv::Scalar colors[3] = {{255, 0, 0}, {0, 0, 255}, {0, 255, 0}};
@@ -144,27 +148,32 @@ int main(int argc, char **argv) {
             cv::putText(img, std::to_string(b.tag_id), b.pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, colors[b.color_id]);
         }
 */
-
     // 在原图上绘制检测结果 end
         cv::imshow("yolov5", img);
 #endif // SHOW_IMG
 
-        chongXY = chong(result);
+        // 获取副哨岗的信息
+        zmq::message_t recv_message(sizeof(CarInfoSend));
+        bool receive = subscriber.recv(&recv_message , ZMQ_DONTWAIT);
+        memcpy(&PC_2, recv_message.data(), sizeof(PC_2));
 
-        /*
-        // send(chongXY);
-        // plz duguxiaochong program
+        // 获取需要发送的消息内容 // receive: 接收到数据,则融合 || 未接收到,则跳过
+        PC_1 = chong(result, PC_2, receive);
+
+        // 发送消息
         zmq::message_t  send_message(sizeof(CarInfoSend));
-        memcpy(send_message.data(), &chongXY, sizeof(chongXY));
+        memcpy(send_message.data(), &PC_1, sizeof(PC_1));
         publisher.send(send_message);
-        */
+        
 
         if (cv::waitKey(1) == 'q') {
             break;
         }
         mv_capture_.cameraReleasebuff();   // 释放这一帧的内容
+#ifndef SHOW_RUNTIME_2
         auto end = std::chrono::system_clock::now();
         std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+#endif  // SHOW_RUNTIME_2
     }
     cap.release();
 }
