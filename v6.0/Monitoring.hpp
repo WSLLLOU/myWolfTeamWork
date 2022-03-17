@@ -8,6 +8,7 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/opencv.hpp>
 #include "Correct.hpp"
+#include <algorithm>
 
 typedef struct
 {
@@ -86,8 +87,16 @@ cv::Point2f Monitoring::getTargetPoint(const cv::Point& ptOrigin) {
 	return cv::Point2f(x * 1.0 / z, y * 1.0 / z);
 }
 
+
+//自定义排序函数  
+bool SortByConf(const Yolo::Detection& predicts_1, const Yolo::Detection& predicts_2)   //注意：本函数的参数的类型一定要与vector中元素的类型一致  
+{   
+    return predicts_1.conf < predicts_2.conf;  //升序排列
+}
+
 // 分析参数 到 --> allCar 
 void Monitoring::analyseData(std::vector<Yolo::Detection>& predicts, std::vector<bbox_t>& opt4Armor, std::vector<car>& allCar, std::vector<armor>& allArmor, cv::Mat& img, cv::Mat& warpmatrix) {
+    std::sort(predicts.begin(), predicts.end(), SortByConf);    // 按置信度升序
     // 分类数据（分析）
     // 分到 allCar 和 allArmor
     for (Yolo::Detection &predict : predicts) {   // predicts.size() 该图检测到多少个物体
@@ -193,11 +202,12 @@ void Monitoring::fixCarPosition(std::vector<car>& allCar) {
     for (auto &Car : allCar) {
         fixPosX = Car.carPosition.x;
         fixPosY = Car.carPosition.y;
-
-        // 矫正偏差                 下列翻转次序仅限于一角可用
-        flip_vertical(fixPosY); // 垂直翻转
-        correct_function(fixPosX, fixPosY);
-        flip_vertical(fixPosY); // 垂直翻转
+        flip_vertical(Car.carPosition.y);
+        
+        flip_vertical(fixPosY);                 // 垂直翻转
+        
+        correct_function(fixPosX, fixPosY);     // 矫正偏差
+        // flip_vertical(fixPosY);                 // 垂直翻转
 
         // 赋值
         Car.carPositionFixed.x = fixPosX;
