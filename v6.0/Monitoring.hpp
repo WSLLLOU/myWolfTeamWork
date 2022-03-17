@@ -202,10 +202,10 @@ void Monitoring::fixCarPosition(std::vector<car>& allCar) {
     for (auto &Car : allCar) {
         fixPosX = Car.carPosition.x;
         fixPosY = Car.carPosition.y;
+        
         flip_vertical(Car.carPosition.y);
         
         flip_vertical(fixPosY);                 // 垂直翻转
-        
         correct_function(fixPosX, fixPosY);     // 矫正偏差
         // flip_vertical(fixPosY);                 // 垂直翻转
 
