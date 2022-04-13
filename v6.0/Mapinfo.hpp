@@ -7,26 +7,31 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/opencv.hpp>
+#include "Message.hpp"
 
 class MapInfo
 {
 private:
     cv::Mat warpmatrix;     // (3, 3, CV_64FC1)  透视变换矩阵
 
-    cv::Mat aiMap               = ~ cv::Mat::zeros(808, 448, CV_8UC3);  // 白图
+    cv::Mat aiMap               = ~ cv::Mat::zeros(808, 448, CV_8UC3);  // 白图(初始化变量)
     cv::Mat B3_B7               = ~ cv::Mat::zeros(20,  100, CV_8UC3);
     cv::Mat B1_B4_B6_B9         = ~ cv::Mat::zeros(100, 20,  CV_8UC3);
     cv::Mat B2_B8               = ~ cv::Mat::zeros(80,  20,  CV_8UC3);
     cv::Mat B5                  = cv::Mat::zeros(26,  26,  CV_8UC3);    // 黑图
 
-    cv::Mat aiMapShow           = ~ cv::Mat::zeros(808, 448, CV_8UC3);  // 白图
+    cv::Mat aiMapShow           = ~ cv::Mat::zeros(808, 448, CV_8UC3);  // 要展示的画布
+    cv::Mat aiMapShow2          = ~ cv::Mat::zeros(808, 448, CV_8UC3);  // 要展示的画布
 
 public:
    MapInfo(cv::Mat& warpmatrix);
    ~MapInfo();
+   void showTransformImg(const cv::Mat& img);
    void showMapInfo(std::vector<car>& result);
-   void showTransformImg(cv::Mat& img);
    void drawCarPosition(std::vector<car>& result);
+   
+   void showMapInfo2(const CarInfoSend& sendInfo);
+   void drawCarPosition2(const CarInfoSend& sendInfo);
 };
 
 // 构造函数
@@ -66,6 +71,7 @@ MapInfo::MapInfo(cv::Mat& warpmatrix) {
     cv::absdiff(roiB5, B5, roiB5);
 
     aiMap.copyTo(aiMapShow);
+    aiMap.copyTo(aiMapShow2);
 }
 
 MapInfo::~MapInfo() {
@@ -73,7 +79,7 @@ MapInfo::~MapInfo() {
 }
 
 // 显示 透视变换 后的图像
-void MapInfo::showTransformImg(cv::Mat& img) {
+void MapInfo::showTransformImg(const cv::Mat& img) {
     static cv::Mat result;
     cv::warpPerspective(img, result, this->warpmatrix, cv::Size(448, 808),cv::INTER_LINEAR); //result.size(),
     cv::imshow("result", result);
@@ -95,6 +101,46 @@ void MapInfo::drawCarPosition(std::vector<car>& result) {
     }
 }
 
+void MapInfo::showMapInfo2(const CarInfoSend& sendInfo) {
+    drawCarPosition2(sendInfo);
+    cv::imshow("map2", aiMapShow2);
+    aiMap.copyTo(aiMapShow2);
+}
 
+void MapInfo::drawCarPosition2(const CarInfoSend& sendInfo) {
+    static const cv::Scalar colors[] = {{0,0,0}, {255,0,0}, {0,0,255}, {0,0,0}};
+    if (sendInfo.blue1 != cv::Point2f(-1, -1)) {
+        cv::circle(aiMapShow2, sendInfo.blue1, 25, colors[1], -1);
+        cv::putText(aiMapShow2, std::to_string(1), cv::Point(sendInfo.blue1.x - 6, sendInfo.blue1.y + 6), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+    }
+    if (sendInfo.blue2 != cv::Point2f(-1, -1)) {
+        cv::circle(aiMapShow2, sendInfo.blue2, 25, colors[1], -1);
+        cv::putText(aiMapShow2, std::to_string(2), cv::Point(sendInfo.blue2.x - 6, sendInfo.blue2.y + 6), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+    }
+    if (sendInfo.red1  != cv::Point2f(-1, -1)) {
+        cv::circle(aiMapShow2, sendInfo.red1,  25, colors[2], -1);
+        cv::putText(aiMapShow2, std::to_string(1), cv::Point(sendInfo.red1.x - 6, sendInfo.red1.y + 6), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+    }
+    if (sendInfo.red2 != cv::Point2f(-1, -1)) {
+        cv::circle(aiMapShow2, sendInfo.red2,  25, colors[2], -1);
+        cv::putText(aiMapShow2, std::to_string(2), cv::Point(sendInfo.red2.x - 6, sendInfo.red2.y + 6), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+    }
+    if (sendInfo.blue1_2 != cv::Point2f(-1, -1)) {
+        cv::circle(aiMapShow2, sendInfo.blue1_2, 25, colors[1], -1);
+        cv::putText(aiMapShow2, std::to_string(1), cv::Point(sendInfo.blue1_2.x - 6, sendInfo.blue1_2.y + 6), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+    }
+    if (sendInfo.blue2_2 != cv::Point2f(-1, -1)) {
+        cv::circle(aiMapShow2, sendInfo.blue2_2, 25, colors[1], -1);
+        cv::putText(aiMapShow2, std::to_string(2), cv::Point(sendInfo.blue2_2.x - 6, sendInfo.blue2_2.y + 6), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+    }
+    if (sendInfo.red1_2  != cv::Point2f(-1, -1)) {
+        cv::circle(aiMapShow2, sendInfo.red1_2,  25, colors[2], -1);
+        cv::putText(aiMapShow2, std::to_string(1), cv::Point(sendInfo.red1_2.x - 6, sendInfo.red1_2.y + 6), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+    }
+    if (sendInfo.red2_2 != cv::Point2f(-1, -1)) {
+        cv::circle(aiMapShow2, sendInfo.red2_2,  25, colors[2], -1);
+        cv::putText(aiMapShow2, std::to_string(2), cv::Point(sendInfo.red2_2.x - 6, sendInfo.red2_2.y + 6), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+    }
+}
 
 #endif  // _MAPINFO_HPP_
