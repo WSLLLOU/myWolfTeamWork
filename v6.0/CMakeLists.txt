@@ -16,6 +16,8 @@ link_directories(/usr/local/cuda/lib64)
 # find cppzmq wrapper, installed by make of cppzmq
 find_package(cppzmq)
 
+find_package(Threads)
+
 include_directories(.)
 include_directories(./TRTX)
 include_directories(./opt4)
@@ -31,3 +33,4 @@ target_link_libraries(main yolov5)    # fmt::fmt
 target_link_libraries(main opt4)
 target_link_libraries(main mv_video_capture)
 target_link_libraries(main cppzmq)
+target_link_libraries(main ${CMAKE_THREAD_LIBS_INIT})
