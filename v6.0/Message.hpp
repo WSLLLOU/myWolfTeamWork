@@ -149,7 +149,7 @@ void CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1_2, cv::P
     ) {
         float distanceCar = getDistance(CarLocation1, CarLocation2);
         // 两点距离超过 [50] 厘米, 判定为两台不一样的车
-        if (distanceCar > 50) {
+        if (distanceCar > 100) {
             // CarLocation1 无需改动
             CarLocation1_2 = CarLocation2;  // 副哨岗赋值给主哨岗
             swapPointCheck(CarLocation1, CarLocation1_2);
@@ -268,9 +268,9 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
                     swapPointCheck(PC_1.red1, PC_1.red1_2);
                 }  
             }
-            else if (info.color == 2) { // 后颜色 <-- `gray`2
-                PC_1.gray_num += 1;
-            }
+            // else if (info.color == 2) { // 后颜色 <-- `gray`2
+            //     PC_1.gray_num += 1;
+            // }
         }
         else if (info.num == 2) {       // 先车牌 <-- `2`
             if (info.color == 0) {      // 后颜色 <-- `blue`0
@@ -291,7 +291,12 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
                     swapPointCheck(PC_1.red2, PC_1.red2_2);
                 }
             }
-            else if (info.color == 2) { // 后颜色 <-- `gray`2
+            // else if (info.color == 2) { // 后颜色 <-- `gray`2
+            //     PC_1.gray_num += 1;
+            // }
+        }
+        else {
+            if (info.color == 2) {
                 PC_1.gray_num += 1;
             }
         }
