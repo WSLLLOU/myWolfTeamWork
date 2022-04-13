@@ -23,7 +23,7 @@ void flip_diagonal(float& x, float& y) {
 
 // 矫正偏差
 void correct_function(float& x, float& y) {
-    static float watchDog   = 1768.0;
+    static float watchDog   = 1789.0;
     static float carHeight  = 250.0;
     static float nicetry    = carHeight / watchDog;
     x = x * (1.0 - nicetry);
