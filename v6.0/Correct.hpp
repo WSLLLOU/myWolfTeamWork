@@ -9,11 +9,15 @@
 
 // 水平翻转
 void flip_horizontal(float& x) {
-    x = MAP_WIDTH - x;
+    if (x != -1.0) {
+        x = std::fabs(MAP_WIDTH - x);
+    }
 }
 // 垂直翻转
 void flip_vertical(float& y) {
-    y = MAP_HIGH - y;
+    if (y != -1.0) {
+        y = std::fabs(MAP_HIGH  - y);
+    }
 }
 // 对角翻转
 void flip_diagonal(float& x, float& y) {
