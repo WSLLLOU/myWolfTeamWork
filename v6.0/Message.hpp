@@ -371,15 +371,26 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
         三: 己方死一台, 敌方未死
             [有灰车 PC_1.gray_num == 1, 单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
         四: 双方各死一台
-            因为 PC_1.gray_num == 2, !故而不能判断正确结果
+            [PC_1.gray_num == 2,       单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
 
         但由于三四都为己方死一台车为前提, 就不必考虑是否误伤队友, 这时 sameColorNumFrames和socketInfo.swapColorModes 的值是什么已经无所谓了
     */
-    if (Message::singleFrameSameColorNumSroce + PC_1.gray_num == 2) {
-        sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
+    static float sameColorNumFramesThreshold = 30;
+    if (Message::sameColorNumFrames < sameColorNumFramesThreshold) {
+        if (Message::singleFrameSameColorNumSroce + PC_1.gray_num == 2) {
+            Message::sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
+        }
+        else if (PC_1.gray_num == 2 && Message::singleFrameSameColorNumSroce==1) {
+            Message::sameColorNumFrames += 1;
+        }
+        else {
+            Message::sameColorNumFrames -= 2;
+            Message::sameColorNumFrames = relu(Message::sameColorNumFrames);
+        }
     }
+
     // 当sameColorNumFrames累积达到某个阈值时，即多次检测到[两辆同车同号]的情况出现时 --> 确认潜伏模式后的车车颜色交换情况
-    if (Message::sameColorNumFrames >= 30) {
+    if (Message::sameColorNumFrames >= sameColorNumFramesThreshold) {
         PC_1.swapColorModes = 1;      // 达到阈值, 判定 1 --> 最麻烦的情况, 敌我车辆同号同色
     }
 
