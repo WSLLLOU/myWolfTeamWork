@@ -15,7 +15,7 @@ typedef struct
     cv::Rect    img_r;              // `图像`上的车车下半身矩形框 --> 用于寻找装甲板的存在roi
     cv::Point2f carPosition;        // 矫正前的`世界地图`上的坐标点
     cv::Point2f carPositionFixed;   // 矫正后的`世界地图`上的坐标点
-    int         color;              // 0蓝 1红 2黑
+    int         color;              // 0蓝 1红 2黑 3紫
     int         num;                // 1 / 2
 } car;
 
@@ -208,6 +208,8 @@ void Monitoring::fixCarPosition(std::vector<car>& allCar) {
         flip_vertical(fixPosY);                 // 垂直翻转
         correct_function(fixPosX, fixPosY);     // 矫正偏差
         // flip_vertical(fixPosY);                 // 垂直翻转
+
+        // flip_vertical(Car.carPosition.y);
 
         // 赋值
         Car.carPositionFixed.x = fixPosX;
