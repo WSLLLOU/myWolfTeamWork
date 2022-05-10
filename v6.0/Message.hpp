@@ -20,12 +20,23 @@
 //     int         num;                // 1 / 2
 // } car;
 
+typedef struct 
+{
+    cv::Point2f carPosition;    // 车当前坐标
+    int         alone;          // 队友是否死了 0:FALSE, 1:TRUE
+} RobotCarPositionSend;
+
+
 typedef struct {			// 套接字内容
 
     int gray_num;           // 当前帧灰车的数量
 
     int swapColorModes;     // 交换颜色模式: 交换后异号异色车--0  交换后同号同色车--1
 
+    // 在潜伏模式后, 穿山甲的颜色会变成敌方的颜色
+    // 在潜伏模式后, 己方车辆发送 [自身的地图坐标&队友是否死亡的信息] 给主哨岗, 主哨岗取其信息进行卧底车牌号判断
+    int pangolin;           // 穿山甲
+    
     cv::Point2f blue1;
     cv::Point2f blue2;
     cv::Point2f red1;
@@ -38,19 +49,31 @@ typedef struct {			// 套接字内容
 
 } CarInfoSend;
 
+float relu(float _frame) {
+    static float zero = 0.0;
+    return std::max(_frame, zero);
+}
 
 class Message {
     private:
         CarInfoSend     PC_1;
         // uint            gray_num;
+
+        // 查交换颜色情况
         int             sameColorNumFrames = 0;         // 车同号同色出现的帧数记数, 用于判断 交换颜色模式 0/1
         int             singleFrameSameColorNumSroce;   // 单帧出现同车同号的得分，出现一次+1分，出现两次则可以确认并且给 sameColorNumFrames += 1
+
+        // 查卧底
+        int             pangolinIs_1Frames = 0;
+        int             pangolinIs_2Frames = 0;
+        int             pangolinIs_1;
+        int             pangolinIs_2;
 
     public:
         Message();
         ~Message();
         void init();
-        CarInfoSend operator()(std::vector<car>& result, CarInfoSend& PC_2, bool& receive);
+        CarInfoSend operator()(std::vector<car>& result, CarInfoSend& PC_2, bool& receive_sentry, RobotCarPositionSend& car1Info, bool& receive_car1, RobotCarPositionSend& car2Info, bool& receive_car2);
 };
 
 Message::Message() {
@@ -63,6 +86,10 @@ Message::~Message() {
 
 void Message::init() {
     Message::singleFrameSameColorNumSroce = 0;
+    Message::pangolinIs_1 = 0;
+    Message::pangolinIs_2 = 0;
+
+    PC_1.pangolin = -1;  // 穿山甲-1初始化
 
     PC_1.gray_num = 0;
     PC_1.swapColorModes = 0;
@@ -234,12 +261,12 @@ void CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1_2, cv::P
 }
 
 //自定义排序函数  
-bool SortByCarPositionFixedY(const car& car1, const car& car2)   //注意：本函数的参数的类型一定要与vector中元素的类型一致  
+bool SortByCarPositionFixedY(const car& _car1_sort, const car& _car2_sort)   //注意：本函数的参数的类型一定要与vector中元素的类型一致  
 {   
-    return car1.carPositionFixed.y < car2.carPositionFixed.y;  //升序排列
+    return _car1_sort.carPositionFixed.y < _car2_sort.carPositionFixed.y;  //升序排列
 }
 
-CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, bool& receive) {
+CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, bool& receive_sentry, RobotCarPositionSend& car1Info, bool& receive_car1, RobotCarPositionSend& car2Info, bool& receive_car2) {
     init();
 //     cv::Point2f carPositionFixed;   // 矫正后的`世界地图`上的坐标点
 //     int         color;              // 0蓝 1红 2黑
@@ -306,7 +333,7 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
     /* 数据融合
         bool receive 表示是否接收到副哨岗的信息
     */
-    if (receive) {
+    if (receive_sentry) {
         // PC_1.blue1   PC_1.blue1_2    PC_2.blue1  PC_1.blue1_2  ==> 除去 cv::Point2f(-1, -1)的, 剩下的去聚类, 以此类推
         CarPlaceMerge(PC_1.blue1, PC_1.blue1_2, PC_2.blue1, PC_1.blue1_2);
         CarPlaceMerge(PC_1.red1,  PC_1.red1_2,  PC_2.red1,  PC_1.red1_2);
@@ -335,7 +362,6 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
         PC_1.red2_2  != cv::Point2f(-1, -1)) {
         Message::singleFrameSameColorNumSroce += 1;
     }
-
     // 记录同车同号出现的帧数
     /*
         一: 无车死亡
@@ -352,7 +378,6 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
     if (Message::singleFrameSameColorNumSroce + PC_1.gray_num == 2) {
         sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
     }
-
     // 当sameColorNumFrames累积达到某个阈值时，即多次检测到[两辆同车同号]的情况出现时 --> 确认潜伏模式后的车车颜色交换情况
     if (Message::sameColorNumFrames >= 30) {
         PC_1.swapColorModes = 1;      // 达到阈值, 判定 1 --> 最麻烦的情况, 敌我车辆同号同色
@@ -361,7 +386,214 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
     /*  这里添加坐标轴转换代码
 
     */
+    flip_vertical(PC_1.blue1.y);
+    flip_vertical(PC_1.blue2.y);
+    flip_vertical(PC_1.red1.y);
+    flip_vertical(PC_1.red2.y);
 
+    /*  查卧底
+            bool receive_car1   表示是否接收到car1位置数据
+            bool receive_car2   表示是否接收到car2位置数据
+    */
+    static std::string whoAmI    = "blue"; // blue or red
+    static cv::Point2f nothing   = cv::Point2f(-1,-1);
+    static float       pangolinDistanceThreshold = 50;
+    
+    if (whoAmI == "blue") {
+        if (receive_car1 == true) {
+            float min_dis_car = getDistance(cv::Point2f(808+10, 448+10), nothing);
+            float dis_car;
+
+            if (PC_1.red1 != nothing) {
+                dis_car = getDistance(PC_1.red1,   car1Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_1 = 1;
+                }
+            }
+            if (PC_1.red1_2 != nothing) {
+                dis_car = getDistance(PC_1.red1_2, car1Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_1 = 1;
+                }
+            }
+            if (PC_1.red2 != nothing) {
+                dis_car = getDistance(PC_1.red2,   car1Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_1 = 1;
+                }
+            }
+            if (PC_1.red2_2 != nothing) {
+                dis_car = getDistance(PC_1.red2_2, car1Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_1 = 1;
+                }
+            }
+
+            // 若该距离还大于某个阈值, 则判断为目前哨岗的数据没有一个可以匹配该车辆数据的
+            if (min_dis_car > pangolinDistanceThreshold)
+            {
+                Message::pangolinIs_1 = 0;
+            }
+            // 当car1的队友死了, 且自己并不是卧底时, 可以有效怀疑死去的队友是卧底
+            if (Message::pangolinIs_1 == 0 && car1Info.alone == 1) {
+                Message::pangolinIs_2 = 1;
+            }
+        }
+        if (receive_car2 == true) {
+            float min_dis_car = getDistance(cv::Point2f(808+10, 448+10), nothing);
+            float dis_car;
+
+            if (PC_1.red1 != nothing) {
+                dis_car = getDistance(PC_1.red1,   car2Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_2 = 1;
+                }
+            }
+            if (PC_1.red1_2 != nothing) {
+                dis_car = getDistance(PC_1.red1_2, car2Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_2 = 1;
+                }
+            }
+            if (PC_1.red2 != nothing) {
+                dis_car = getDistance(PC_1.red2,   car2Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_2 = 1;
+                }
+            }
+            if (PC_1.red2_2 != nothing) {
+                dis_car = getDistance(PC_1.red2_2, car2Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_2 = 1;
+                }
+            }
+
+            // 若该距离还大于某个阈值, 则判断为目前哨岗的数据没有一个可以匹配该车辆数据的
+            if (min_dis_car > pangolinDistanceThreshold)
+            {
+                Message::pangolinIs_2 = 0;
+            }
+            // 当car2的队友死了, 且自己并不是卧底时, 可以有效怀疑死去的队友是卧底
+            if (Message::pangolinIs_2 == 0 && car2Info.alone == 1) {
+                Message::pangolinIs_1 = 1;
+            }
+        }
+    }
+    else if (whoAmI == "red") {
+        if (receive_car1 == true) {
+            float min_dis_car = getDistance(cv::Point2f(808+10, 448+10), nothing);
+            float dis_car;
+
+            if (PC_1.blue1 != nothing) {
+                dis_car = getDistance(PC_1.blue1,   car1Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_1 = 1;
+                }
+            }
+            if (PC_1.blue1_2 != nothing) {
+                dis_car = getDistance(PC_1.blue1_2, car1Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_1 = 1;
+                }
+            }
+            if (PC_1.blue2 != nothing) {
+                dis_car = getDistance(PC_1.blue2,   car1Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_1 = 1;
+                }
+            }
+            if (PC_1.blue2_2 != nothing) {
+                dis_car = getDistance(PC_1.blue2_2, car1Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_1 = 1;
+                }
+            }
+
+            // 若该距离还大于某个阈值, 则判断为目前哨岗的数据没有一个可以匹配该车辆数据的
+            if (min_dis_car > pangolinDistanceThreshold)
+            {
+                Message::pangolinIs_1 = 0;
+            }
+            // 当car1的队友死了, 且自己并不是卧底时, 可以有效怀疑死去的队友是卧底
+            if (Message::pangolinIs_1 == 0 && car1Info.alone == 1) {
+                Message::pangolinIs_2 = 1;
+            }
+        }
+        if (receive_car2 == true) {
+            float min_dis_car = getDistance(cv::Point2f(808+10, 448+10), nothing);
+            float dis_car;
+
+            if (PC_1.blue1 != nothing) {
+                dis_car = getDistance(PC_1.blue1,   car2Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_2 = 1;
+                }
+            }
+            if (PC_1.blue1_2 != nothing) {
+                dis_car = getDistance(PC_1.blue1_2, car2Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_2 = 1;
+                }
+            }
+            if (PC_1.blue2 != nothing) {
+                dis_car = getDistance(PC_1.blue2,   car2Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_2 = 1;
+                }
+            }
+            if (PC_1.blue2_2 != nothing) {
+                dis_car = getDistance(PC_1.blue2_2, car2Info.carPosition);
+                if (dis_car < min_dis_car) {
+                    min_dis_car = dis_car;
+                    Message::pangolinIs_2 = 1;
+                }
+            }
+
+            // 若该距离还大于某个阈值, 则判断为目前哨岗的数据没有一个可以匹配该车辆数据的
+            if (min_dis_car > pangolinDistanceThreshold)
+            {
+                Message::pangolinIs_2 = 0;
+            }
+            // 当car2的队友死了, 且自己并不是卧底时, 可以有效怀疑死去的队友是卧底
+            if (Message::pangolinIs_2 == 0 && car2Info.alone == 1) {
+                Message::pangolinIs_1 = 1;
+            }
+        }
+    }
+
+    // 连续的卧底判断, 若得到阈值, 则结束
+    int pangolinFramesThreshold = 30;
+    if ( (Message::pangolinIs_1Frames < pangolinFramesThreshold) &&
+         (Message::pangolinIs_2Frames < pangolinFramesThreshold))  {
+        // 
+        if (Message::pangolinIs_1 == 1)     { Message::pangolinIs_1Frames+=1; Message::pangolinIs_1Frames=relu(Message::pangolinIs_1Frames); }  // 当前帧 判断 卧底是1
+        else if (Message::pangolinIs_1 == 0){ Message::pangolinIs_1Frames-=2; Message::pangolinIs_1Frames=relu(Message::pangolinIs_1Frames); }  // 当前帧 判断 卧底不是1
+        // 
+        if (Message::pangolinIs_2 == 1)     { Message::pangolinIs_2Frames+=1; Message::pangolinIs_1Frames=relu(Message::pangolinIs_2Frames); }  // 当前帧 判断 卧底是1
+        else if (Message::pangolinIs_2 == 0){ Message::pangolinIs_2Frames-=2; Message::pangolinIs_1Frames=relu(Message::pangolinIs_2Frames); }  // 当前帧 判断 卧底不是1
+    }
+    // else {
+    // 经过多帧判断卧底
+    if (Message::pangolinIs_1Frames >= pangolinFramesThreshold)      { PC_1.pangolin = 1; } // 卧底是1
+    else if (Message::pangolinIs_2Frames >= pangolinFramesThreshold) { PC_1.pangolin = 2; } // 卧底是2
+    // }
+    
+    
     return this->PC_1;
 }
 
