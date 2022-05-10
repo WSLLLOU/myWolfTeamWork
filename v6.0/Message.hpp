@@ -49,11 +49,6 @@ typedef struct {			// 套接字内容
 
 } CarInfoSend;
 
-float relu(float _frame) {
-    static float zero = 0.0;
-    return std::max(_frame, zero);
-}
-
 class Message {
     private:
         CarInfoSend     PC_1;
@@ -117,6 +112,11 @@ void Message::init() {
 
     PC_1.red2_2.x = -1;
     PC_1.red2_2.y = -1;
+}
+
+float relu(float _frame) {
+    static float zero = 0.0;
+    return std::max(_frame, zero);
 }
 
 float getDistance(const cv::Point2f& point1, const cv::Point2f& point2) {
@@ -395,7 +395,7 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
     }
 
     /*  这里添加坐标轴转换代码
-
+        
     */
     flip_vertical(PC_1.blue1.y);
     flip_vertical(PC_1.blue2.y);
