@@ -21,13 +21,16 @@ struct Send{			// 套接字内容
 
     int swapColorModes;     // 交换颜色模式: 交换后异号异色车--0  交换后同号同色车--1
 
+    int pangolin;           // 卧底
+
     cv::Point2f blue1;
     cv::Point2f blue2;
     cv::Point2f red1;
     cv::Point2f red2;
 
-    Send(int swapColorModes, cv::Point2f blue1, cv::Point2f blue2, cv::Point2f red1, cv::Point2f red2) {
+    Send(int swapColorModes, int pangolin, cv::Point2f blue1, cv::Point2f blue2, cv::Point2f red1, cv::Point2f red2) {
         this->swapColorModes = swapColorModes;
+        this->pangolin = pangolin;
         this->blue1 = blue1;
         this->blue2 = blue2;
         this->red1  = red1;
@@ -74,29 +77,45 @@ void getWarpMatrix(cv::Mat& img) {
 
 std::mutex  mtx;
 CarInfoSend PC_2 = CarInfoSend{};
-bool        receive;
-
-void start_2(zmq::socket_t& subscriber) {
+RobotCarPositionSend car1Info = RobotCarPositionSend{};
+RobotCarPositionSend car2Info = RobotCarPositionSend{};
+bool receive_sentry = false;
+bool receive_car1   = false;
+bool receive_car2   = false;
+void start_2(zmq::socket_t& subscriber_sentry, zmq::socket_t& subscriber_car1, zmq::socket_t& subscriber_car2) {
     while (1)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(20)); // 休眠20ms
+
         // 获取副哨岗的信息
-        zmq::message_t recv_message(sizeof(CarInfoSend));
+        zmq::message_t recv_message_sentry(sizeof(CarInfoSend));
+
+        // 获取car1的信息
+        zmq::message_t recv_message_car1(sizeof(RobotCarPositionSend));
+        // 获取car2的信息
+        zmq::message_t recv_message_car2(sizeof(RobotCarPositionSend));
+
 mtx.lock();
-        receive = subscriber.recv(&recv_message, ZMQ_DONTWAIT);
-        memcpy(&PC_2, recv_message.data(), sizeof(PC_2));
+        receive_sentry = subscriber_sentry.recv(&recv_message_sentry, ZMQ_DONTWAIT);
+        memcpy(&PC_2, recv_message_sentry.data(), sizeof(PC_2));
+
+        receive_car1 = subscriber_car1.recv(&recv_message_car1, ZMQ_DONTWAIT);
+        memcpy(&car1Info, recv_message_car1.data(), sizeof(car1Info));
+
+        receive_car2 = subscriber_car2.recv(&recv_message_car2, ZMQ_DONTWAIT);
+        memcpy(&car2Info, recv_message_car2.data(), sizeof(car2Info));
 mtx.unlock();
 
-        std::cout << "是否接受到: " << receive << std::endl;
-        // std::cout << "blue1:    " << PC_2.blue1 << std::endl;
-        // std::cout << "red2:     " << PC_2.red2 << std::endl;
+        std::cout << "是否接受到副哨岗: " << receive_sentry << std::endl;
+        std::cout << "是否接受到car1 : " << receive_car1 << std::endl;
+        std::cout << "是否接受到car2 : " << receive_car2 << std::endl;
     }
 }
 
 
 void start_1() {
     std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx/yolov5/imgsz1280_1280_65_b.engine";
-    std::string img_dir     = "/home/wsl/wolf_workspace/yoloCustomData/3月19/3月19_right_1.avi";
+    std::string img_dir     = "/home/wsl/wolf_workspace/yoloCustomData/5000曝光2.avi";
 
     cv::VideoCapture    cap(img_dir);  // cap捕捉图片流
     // cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
@@ -108,7 +127,7 @@ void start_1() {
     cv::Mat             img;
 
     mindvision::VideoCapture mv_capture_ = mindvision::VideoCapture(
-                                                    mindvision::CameraParam(0,          // 0--工业相机, 1--其他免驱相机
+                                                    mindvision::CameraParam(1,          // 0--工业相机, 1--其他免驱相机
                                                                             mindvision::RESOLUTION_1280_X_1024,
                                                                             mindvision::EXPOSURE_NONE
                                                                             )
@@ -159,8 +178,8 @@ void start_1() {
         wolfEye.run(car, armor, img, result);   // 得出结果 ————> result 
 
 #ifndef MAPINFO_OFF
-        mapInfo.showTransformImg(img);                          // ++ 显示透视变换后的图片   
-        mapInfo.showMapInfo(result);                            // ++ 显示模拟地图    
+        mapInfo.showTransformImg(img);                          // ++ 显示透视变换后的图片
+        mapInfo.showMapInfo(result);                            // ++ 显示模拟地图
 #endif  // MAPINFO_OFF
 
 #ifndef SHOW_IMG
@@ -193,24 +212,26 @@ void start_1() {
 mtx.lock();
         // mapInfo.showMapInfo2(PC_2);
         // 获取需要发送的消息内容 // receive: 接收到数据,则融合 || 未接收到,则跳过
-        PC_1 = chong(result, PC_2, receive);
+        PC_1 = chong(result, PC_2, receive_sentry, car1Info, receive_car1, car2Info, receive_car2);
+        // 重置接收数据flag
+        receive_sentry = false;
+        receive_car1   = false;
+        receive_car2   = false;
 mtx.unlock();
         mapInfo.showMapInfo2(PC_1);
-        Send PC_1_Send(PC_1.swapColorModes, PC_1.blue1, PC_1.blue2, PC_1.red1, PC_1.red2);                       // 要传输的数据结构变量_2
+        Send PC_1_Send(PC_1.swapColorModes, PC_1.pangolin, PC_1.blue1, PC_1.blue2, PC_1.red1, PC_1.red2);                       // 要传输的数据结构变量_2
 
-        flip_vertical(PC_1_Send.blue1.y);
-        flip_vertical(PC_1_Send.blue2.y);
-        flip_vertical(PC_1_Send.red1.y);
-        flip_vertical(PC_1_Send.red2.y);
-        
+
         std::cout << "发送的内容是" << std::endl;
         if (PC_1_Send.swapColorModes == 1) {
             std::cout << "----------------------------------------------------同色同号了------------------" << std::endl;
         }
-        std::cout << "blue1:    " << PC_1_Send.blue1 << std::endl;
-        std::cout << "blue2:    " << PC_1_Send.blue2 << std::endl;
-        std::cout << "red1:     " << PC_1_Send.red1 << std::endl;
-        std::cout << "red2:     " << PC_1_Send.red2 << std::endl;
+        std::cout << "swapColorModes:" << PC_1_Send.swapColorModes  << std::endl;
+        std::cout << "pangolin:      " << PC_1_Send.pangolin        << std::endl;
+        std::cout << "blue1:         " << PC_1_Send.blue1           << std::endl;
+        std::cout << "blue2:         " << PC_1_Send.blue2           << std::endl;
+        std::cout << "red1:          " << PC_1_Send.red1            << std::endl;
+        std::cout << "red2:          " << PC_1_Send.red2            << std::endl;
 
         // 发送消息
         // zmq::message_t  send_message(sizeof(CarInfoSend));
@@ -226,24 +247,36 @@ mtx.unlock();
         mv_capture_.cameraReleasebuff();   // 释放这一帧的内容
 #ifndef SHOW_RUNTIME
         auto end = std::chrono::system_clock::now();
-        std::cout << "整体时间" << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+        std::cout << "整体时间" << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl << std::endl;
 #endif  // SHOW_RUNTIME
     }
     cap.release();
 }
 
 int main(int argc, char **argv) {
-    // 初始化 接收
-    zmq::context_t receive_context(1);
-    zmq::socket_t subscriber(receive_context, ZMQ_SUB);
-    subscriber.connect("tcp://192.168.1.147:6666"); //147
-    subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+    // 初始化 接收 副哨岗
+    zmq::context_t receive_context_sentry(1);
+    zmq::socket_t subscriber_sentry(receive_context_sentry, ZMQ_SUB);
+    subscriber_sentry.connect("tcp://192.168.1.147:6666");
+    subscriber_sentry.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
-    std::thread t1 = std::thread(start_2, std::ref(subscriber));
-    std::thread t2 = std::thread(start_1);
+    // 初始化 接收 car1Info
+    zmq::context_t receive_context_car1(1);
+    zmq::socket_t subscriber_car1(receive_context_car1, ZMQ_SUB);
+    subscriber_car1.connect("tcp://192.168.1.147:6666");
+    subscriber_car1.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
-    t1.detach();
-    t2.join();
+    // 初始化 接收 car2Info
+    zmq::context_t receive_context_car2(1);
+    zmq::socket_t subscriber_car2(receive_context_car2, ZMQ_SUB);
+    subscriber_car2.connect("tcp://192.168.1.147:6666");
+    subscriber_car2.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+    std::thread t2 = std::thread(start_2, std::ref(subscriber_sentry), std::ref(subscriber_car1), std::ref(subscriber_car2)); // 接收 副哨岗,car1Info,car2Info 信息
+    std::thread t1 = std::thread(start_1);
+
+    t2.detach();
+    t1.join();
 
     return 0;
 }
