@@ -89,7 +89,6 @@ void start_2(zmq::socket_t& subscriber_sentry, zmq::socket_t& subscriber_car1, z
 
         // 获取副哨岗的信息
         zmq::message_t recv_message_sentry(sizeof(CarInfoSend));
-
         // 获取car1的信息
         zmq::message_t recv_message_car1(sizeof(RobotCarPositionSend));
         // 获取car2的信息
@@ -97,18 +96,33 @@ void start_2(zmq::socket_t& subscriber_sentry, zmq::socket_t& subscriber_car1, z
 
 mtx.lock();
         receive_sentry = subscriber_sentry.recv(&recv_message_sentry, ZMQ_DONTWAIT);
-        memcpy(&PC_2, recv_message_sentry.data(), sizeof(PC_2));
+        if (receive_sentry) { 
+            memcpy(&PC_2, recv_message_sentry.data(), sizeof(PC_2)); 
+        }
 
         receive_car1 = subscriber_car1.recv(&recv_message_car1, ZMQ_DONTWAIT);
-        memcpy(&car1Info, recv_message_car1.data(), sizeof(car1Info));
+        if (receive_car1) { 
+            memcpy(&car1Info, recv_message_car1.data(), sizeof(car1Info)); 
+
+            car1Info.carPosition.x *= 100;
+            car1Info.carPosition.y *= 100;
+        }
 
         receive_car2 = subscriber_car2.recv(&recv_message_car2, ZMQ_DONTWAIT);
-        memcpy(&car2Info, recv_message_car2.data(), sizeof(car2Info));
+        if (receive_car2) { 
+            memcpy(&car2Info, recv_message_car2.data(), sizeof(car2Info)); 
+
+            car2Info.carPosition.x *= 100;
+            car2Info.carPosition.y *= 100;
+        }
 mtx.unlock();
 
         std::cout << "是否接受到副哨岗: " << receive_sentry << std::endl;
         std::cout << "是否接受到car1 : " << receive_car1 << std::endl;
         std::cout << "是否接受到car2 : " << receive_car2 << std::endl;
+
+        std::cout << "car1Info      : " << car1Info.carPosition << "    hasAlly:  " << car1Info.hasAlly << std::endl;
+        std::cout << "car2Info      : " << car2Info.carPosition << "    hasAlly:  " << car2Info.hasAlly << std::endl;
     }
 }
 
@@ -127,7 +141,7 @@ void start_1() {
     cv::Mat             img;
 
     mindvision::VideoCapture mv_capture_ = mindvision::VideoCapture(
-                                                    mindvision::CameraParam(1,          // 0--工业相机, 1--其他免驱相机
+                                                    mindvision::CameraParam(0,          // 0--工业相机, 1--其他免驱相机
                                                                             mindvision::RESOLUTION_1280_X_1024,
                                                                             mindvision::EXPOSURE_NONE
                                                                             )
@@ -178,7 +192,7 @@ void start_1() {
         wolfEye.run(car, armor, img, result);   // 得出结果 ————> result 
 
 #ifndef MAPINFO_OFF
-        mapInfo.showTransformImg(img);                          // ++ 显示透视变换后的图片
+        // mapInfo.showTransformImg(img);                          // ++ 显示透视变换后的图片
         mapInfo.showMapInfo(result);                            // ++ 显示模拟地图
 #endif  // MAPINFO_OFF
 
@@ -263,13 +277,13 @@ int main(int argc, char **argv) {
     // 初始化 接收 car1Info
     zmq::context_t receive_context_car1(1);
     zmq::socket_t subscriber_car1(receive_context_car1, ZMQ_SUB);
-    subscriber_car1.connect("tcp://192.168.1.147:6666");
+    subscriber_car1.connect("tcp://192.168.1.66:5555");
     subscriber_car1.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
     // 初始化 接收 car2Info
     zmq::context_t receive_context_car2(1);
     zmq::socket_t subscriber_car2(receive_context_car2, ZMQ_SUB);
-    subscriber_car2.connect("tcp://192.168.1.147:6666");
+    subscriber_car2.connect("tcp://192.168.1.89:5555");
     subscriber_car2.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
     std::thread t2 = std::thread(start_2, std::ref(subscriber_sentry), std::ref(subscriber_car1), std::ref(subscriber_car2)); // 接收 副哨岗,car1Info,car2Info 信息
