@@ -34,4 +34,54 @@ void correct_function(float& x, float& y) {
     y = y * (1.0 - nicetry);
 }
 
+// 矫正偏差
+void correct_function_2(cv::Point2f& carPosition, cv::Point2f& carPositionFixed, const int& mothed) {
+
+    // b_1 == 0  蓝方主哨岗
+    // b_2 == 1  蓝方副哨岗
+    // r_1 == 2  红方主哨岗
+    // r_2 == 3  红方副哨岗
+
+    // 坐标轴翻转 至 能够合适地进行坐标误差矫正
+    if (mothed == 0) {
+        flip_vertical(carPosition.y);
+    }
+    else if (mothed == 1) {
+        flip_vertical(carPosition.y);
+    }
+    else if (mothed == 2) {
+        flip_diagonal(carPosition.x, carPosition.y);
+    }
+    else if (mothed == 3) {
+        flip_diagonal(carPosition.x, carPosition.y);
+    }
+
+    // 坐标误差矫正
+    static float watchDog   = 1789.0;
+    static float carHeight  = 250.0;
+    static float nicetry    = carHeight / watchDog;
+    carPositionFixed.x = carPosition.x * (1.0 - nicetry);
+    carPositionFixed.y = carPosition.y * (1.0 - nicetry);
+
+    // 坐标轴翻转 至 roboCar需要的坐标轴
+    if (mothed == 0) {
+        flip_vertical(carPosition.y);
+        flip_vertical(carPositionFixed.y);
+    }
+    else if (mothed == 1) {
+        flip_horizontal(carPosition.x);
+        flip_horizontal(carPositionFixed.x);
+    }
+    else if (mothed == 2) {
+        // 不需要做任何操作
+    }
+    else if (mothed == 3) {
+        flip_diagonal(carPosition.x,      carPosition.y);
+        flip_diagonal(carPositionFixed.x, carPositionFixed.y);
+    }
+    // std::swap(carPosition.x,      carPosition.y);
+    // std::swap(carPositionFixed.x, carPositionFixed.y);
+
+}
+
 #endif  // _CORRECT_HPP_
