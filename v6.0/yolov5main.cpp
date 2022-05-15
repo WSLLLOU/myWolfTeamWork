@@ -79,9 +79,13 @@ std::mutex  mtx;
 CarInfoSend PC_2 = CarInfoSend{};
 RobotCarPositionSend car1Info = RobotCarPositionSend{};
 RobotCarPositionSend car2Info = RobotCarPositionSend{};
-bool receive_sentry = false;
-bool receive_car1   = false;
-bool receive_car2   = false;
+bool receive_sentry = false;    // 是否接收到哨岗信息
+bool receive_car1   = false;    // 是否接收到car1信息
+bool receive_car2   = false;    // 是否接收到car2信息
+bool sentry_online  = true;     // 副哨岗是否在线
+auto sentry_last = std::chrono::system_clock::now();    // 最后一次接收到哨岗信息的时间
+auto sentry_now  = std::chrono::system_clock::now();    // 当前时间
+auto sentry_diff = std::chrono::duration_cast<std::chrono::milliseconds>(sentry_last - sentry_now).count();
 void start_2(zmq::socket_t& subscriber_sentry, zmq::socket_t& subscriber_car1, zmq::socket_t& subscriber_car2) {
     while (1)
     {
@@ -97,7 +101,8 @@ void start_2(zmq::socket_t& subscriber_sentry, zmq::socket_t& subscriber_car1, z
 mtx.lock();
         receive_sentry = subscriber_sentry.recv(&recv_message_sentry, ZMQ_DONTWAIT);
         if (receive_sentry) { 
-            memcpy(&PC_2, recv_message_sentry.data(), sizeof(PC_2)); 
+            memcpy(&PC_2, recv_message_sentry.data(), sizeof(PC_2));
+            sentry_last = std::chrono::system_clock::now(); // 记录副哨岗信息时间戳
         }
 
         receive_car1 = subscriber_car1.recv(&recv_message_car1, ZMQ_DONTWAIT);
@@ -115,12 +120,22 @@ mtx.lock();
             car2Info.carPosition.x *= 100;
             car2Info.carPosition.y *= 100;
         }
-mtx.unlock();
 
+        sentry_now  = std::chrono::system_clock::now();  // 刷新当前时间
+        sentry_diff = std::chrono::duration_cast<std::chrono::milliseconds>(sentry_now - sentry_last).count();  // 统计最近一次副哨岗的信息距离现在的时间 (ms)
+        // 若最后一次副哨岗信息距今超过1000ms(1s), 判断副哨岗掉线 
+        if (sentry_diff < 1000) {
+            sentry_online = true;   // 副哨岗在线
+        }
+        else {
+            sentry_online = false;  // 副哨岗掉线
+        }
+mtx.unlock();
+        std::cout << "副哨岗断连时间  :" << sentry_diff << std::endl;
+        std::cout << "副哨岗在线状态  :" << sentry_online << std::endl;
         std::cout << "是否接受到副哨岗: " << receive_sentry << std::endl;
         std::cout << "是否接受到car1 : " << receive_car1 << std::endl;
         std::cout << "是否接受到car2 : " << receive_car2 << std::endl;
-
         std::cout << "car1Info      : " << car1Info.carPosition << "    hasAlly:  " << car1Info.hasAlly << std::endl;
         std::cout << "car2Info      : " << car2Info.carPosition << "    hasAlly:  " << car2Info.hasAlly << std::endl;
     }
@@ -199,24 +214,20 @@ void start_1() {
 mtx.lock();
         // mapInfo.showMapInfo2(PC_2);
         // 获取需要发送的消息内容 // receive: 接收到数据,则融合 || 未接收到,则跳过
-        PC_1 = chong(result, PC_2, receive_sentry, car1Info, receive_car1, car2Info, receive_car2);
-        // 重置接收数据flag
-        receive_sentry = false;
-        receive_car1   = false;
-        receive_car2   = false;
+        PC_1 = chong(result, PC_2, receive_sentry, sentry_online, car1Info, receive_car1, car2Info, receive_car2);
+        // // 重置接收数据flag
+        // receive_sentry = false;
+        // receive_car1   = false;
+        // receive_car2   = false;
 mtx.unlock();
 
 #ifndef MAPINFO_OFF
         mapInfo.showMapInfo2(PC_1); // 显示融合后的数据
 #endif  // MAPINFO_OFF
 
-        Send PC_1_Send(PC_1.swapColorModes, PC_1.pangolin, PC_1.blue1, PC_1.blue2, PC_1.red1, PC_1.red2);                       // 要传输的数据结构变量_2
-
+        Send PC_1_Send(PC_1.swapColorModes, PC_1.pangolin, PC_1.blue1, PC_1.blue2, PC_1.red1, PC_1.red2); // 要传输的给RoboCar的消息
 
         std::cout << "发送的内容是" << std::endl;
-        if (PC_1_Send.swapColorModes == 1) {
-            std::cout << "----------------------------------------------------同色同号了------------------" << std::endl;
-        }
         std::cout << "swapColorModes:" << PC_1_Send.swapColorModes  << std::endl;
         std::cout << "pangolin:      " << PC_1_Send.pangolin        << std::endl;
         std::cout << "blue1:         " << PC_1_Send.blue1           << std::endl;
@@ -250,9 +261,12 @@ mtx.unlock();
                 cv::putText(img, std::to_string((int)car[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
             // }
         }
-        cv::putText(img, "swapColorModes: " + std::to_string(PC_1_Send.swapColorModes),  cv::Point(50, 50),  cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "pangolin      : " + std::to_string(PC_1_Send.pangolin),        cv::Point(50, 100), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "FPS           : " + std::to_string(diff),                      cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "swapColorModes : " + std::to_string(PC_1_Send.swapColorModes),  cv::Point(50, 50),  cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "pangolin       : " + std::to_string(PC_1_Send.pangolin),        cv::Point(50, 100), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "FPS            : " + std::to_string(1000.0/diff),               cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        /* 这里把各种状态打印出来吧
+
+        */
 /*
         // 在原图上画装甲板opt4
         const cv::Scalar colors[3] = {{255, 0, 0}, {0, 0, 255}, {0, 255, 0}};
