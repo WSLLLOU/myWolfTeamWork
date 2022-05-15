@@ -200,20 +200,26 @@ void Monitoring::fixCarPosition(std::vector<car>& allCar) {
     static float fixPosX;
     static float fixPosY;
     for (auto &Car : allCar) {
-        fixPosX = Car.carPosition.x;
-        fixPosY = Car.carPosition.y;
+
+        // fixPosX = Car.carPosition.x;
+        // fixPosY = Car.carPosition.y;
         
-        flip_vertical(Car.carPosition.y);
+        // flip_vertical(Car.carPosition.y);
         
-        flip_vertical(fixPosY);                 // 垂直翻转
-        correct_function(fixPosX, fixPosY);     // 矫正偏差
         // flip_vertical(fixPosY);                 // 垂直翻转
 
-        // flip_vertical(Car.carPosition.y);
+        // correct_function(fixPosX, fixPosY);     // 矫正偏差
 
-        // 赋值
-        Car.carPositionFixed.x = fixPosX;
-        Car.carPositionFixed.y = fixPosY;
+        // // flip_vertical(fixPosY);                 // 垂直翻转
+
+        // // flip_vertical(Car.carPosition.y);
+
+        // // 赋值
+        // Car.carPositionFixed.x = fixPosX;
+        // Car.carPositionFixed.y = fixPosY;
+
+        correct_function_2(Car.carPosition, Car.carPositionFixed, 0);
+        
     }
 }
 
