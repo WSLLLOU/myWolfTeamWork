@@ -264,9 +264,9 @@ mtx.unlock();
         cv::putText(img, "swapColorModes : " + std::to_string(PC_1_Send.swapColorModes),  cv::Point(50, 50),  cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
         cv::putText(img, "pangolin       : " + std::to_string(PC_1_Send.pangolin),        cv::Point(50, 100), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
         cv::putText(img, "FPS            : " + std::to_string(1000.0/diff),               cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        /* 这里把各种状态打印出来吧
-
-        */
+        cv::putText(img, "sentry_online  : " + std::to_string(sentry_online),             cv::Point(50, 250), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "receive_car1   : " + std::to_string(receive_car1),              cv::Point(50, 300), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "receive_car2   : " + std::to_string(receive_car2),              cv::Point(50, 350), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
 /*
         // 在原图上画装甲板opt4
         const cv::Scalar colors[3] = {{255, 0, 0}, {0, 0, 255}, {0, 255, 0}};
@@ -298,7 +298,7 @@ int main(int argc, char **argv) {
     // 初始化 接收 副哨岗
     zmq::context_t receive_context_sentry(1);
     zmq::socket_t subscriber_sentry(receive_context_sentry, ZMQ_SUB);
-    subscriber_sentry.connect("tcp://192.168.1.147:6666");
+    subscriber_sentry.connect("tcp://192.168.1.111:6666");
     subscriber_sentry.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
     // 初始化 接收 car1Info
