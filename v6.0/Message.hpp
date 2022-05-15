@@ -58,8 +58,8 @@ class Message {
         int             singleFrameSameColorNumSroce;   // 单帧出现同车同号的得分，出现一次+1分，出现两次则可以确认并且给 sameColorNumFrames += 1
 
         // 查卧底
-        int             pangolinIs_1Frames = 0;         // 判断卧底为1的帧数记数
-        int             pangolinIs_2Frames = 0;         // 判断卧底为2的帧数记数
+        int             pangolinIs_1Frames = 0;         // 判断卧底为1的帧数记数, 用于判断卧底号数
+        int             pangolinIs_2Frames = 0;         // 判断卧底为2的帧数记数, 用于判断卧底号数
         int             pangolinIs_1;                   // 单帧判断卧底为1的投票, 使得 pangolinIs_1Frames ++
         int             pangolinIs_2;                   // 单帧判断卧底为2的投票, 使得 pangolinIs_1Frames ++
 
@@ -73,6 +73,8 @@ class Message {
         Message();
         ~Message();
         void init();
+        void restart();
+
         CarInfoSend operator()(std::vector<car>& result, CarInfoSend& PC_2, bool& receive_sentry, bool& sentry_online, RobotCarPositionSend& car1Info, bool& receive_car1, RobotCarPositionSend& car2Info, bool& receive_car2);
 
         void CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1_2, cv::Point2f& CarLocation2, cv::Point2f& CarLocation2_2);
@@ -85,6 +87,12 @@ Message::Message() {
 
 Message::~Message() {
 
+}
+
+void Message::restart() {
+    Message::sameColorNumFrames = 0;
+    Message::pangolinIs_1Frames = 0;
+    Message::pangolinIs_2Frames = 0;
 }
 
 void Message::init() {

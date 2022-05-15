@@ -280,8 +280,13 @@ mtx.unlock();
 */
     // 在原图上绘制检测结果 end
         cv::imshow("yolov5", img);
-        if (cv::waitKey(1) == 'q') {
+        static char _key;
+        _key = cv::waitKey(1);
+        if (_key == 'q') {
             break;
+        }
+        else if (_key == 'c') {
+            chong.restart();
         }
 #endif // SHOW_IMG
 
