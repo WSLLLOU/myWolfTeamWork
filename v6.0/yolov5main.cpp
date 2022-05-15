@@ -21,7 +21,7 @@ struct Send{			// 套接字内容
 
     int swapColorModes;     // 交换颜色模式: 交换后异号异色车--0  交换后同号同色车--1
 
-    int pangolin;           // 卧底
+    int pangolin;          // 卧底
 
     cv::Point2f blue1;
     cv::Point2f blue2;
@@ -57,7 +57,7 @@ static void onMouse1(int event, int x, int y, int, void* userInput) {
         else if (times == 5) {
 		    // cv::Point2f god_view[] 	  = { cv::Point2f(808,448), cv::Point2f(808,0), cv::Point2f(0,448), cv::Point2f(0,0) };
 		    cv::Point2f god_view[] 	    = { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100, 708), cv::Point2f(348, 808-150) };
-		    //计算变换矩阵
+		    // 计算变换矩阵
 		    warpmatrix = cv::getPerspectiveTransform(fourPoint, god_view);
 		    std::cout << warpmatrix << std::endl;
         }
@@ -196,33 +196,6 @@ void start_1() {
         mapInfo.showMapInfo(result);                            // ++ 显示模拟地图
 #endif  // MAPINFO_OFF
 
-#ifndef SHOW_IMG
-    // 在原图上绘制检测结果 start
-        // 绘制 矩形(rectangle) 和 类编号(class_id)
-        for (size_t j = 0; j < car.size(); j++) {               // car.size() 该图检测到多少个class
-            // if( car[j].class_id == 0) {
-                cv::Rect r  = get_rect(img, car[j].bbox);
-                // r           = r + cv::Point(0, r.height/2);       //平移，左上顶点的 `x坐标`不变，`y坐标` +r.height/2
-                // r           = r + cv::Size (0, -r.height/2);      //缩放，左上顶点不变，宽度不变，高度减半
-                cv::rectangle(img, r, cv::Scalar(0xff, 0xff, 0xff), 2);
-                cv::putText(img, std::to_string((int)car[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-            // }
-        }
-/*
-        // 在原图上画装甲板opt4
-        const cv::Scalar colors[3] = {{255, 0, 0}, {0, 0, 255}, {0, 255, 0}};
-        for (const auto &b : armor) {
-            cv::line(img, b.pts[0], b.pts[1], colors[2], 2);
-            cv::line(img, b.pts[1], b.pts[2], colors[2], 2);
-            cv::line(img, b.pts[2], b.pts[3], colors[2], 2);
-            cv::line(img, b.pts[3], b.pts[0], colors[2], 2);
-            cv::putText(img, std::to_string(b.tag_id), b.pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, colors[b.color_id]);
-        }
-*/
-    // 在原图上绘制检测结果 end
-        cv::imshow("yolov5", img);
-#endif // SHOW_IMG
-
 mtx.lock();
         // mapInfo.showMapInfo2(PC_2);
         // 获取需要发送的消息内容 // receive: 接收到数据,则融合 || 未接收到,则跳过
@@ -232,7 +205,11 @@ mtx.lock();
         receive_car1   = false;
         receive_car2   = false;
 mtx.unlock();
-        mapInfo.showMapInfo2(PC_1);
+
+#ifndef MAPINFO_OFF
+        mapInfo.showMapInfo2(PC_1); // 显示融合后的数据
+#endif  // MAPINFO_OFF
+
         Send PC_1_Send(PC_1.swapColorModes, PC_1.pangolin, PC_1.blue1, PC_1.blue2, PC_1.red1, PC_1.red2);                       // 要传输的数据结构变量_2
 
 
@@ -253,16 +230,47 @@ mtx.unlock();
         // memcpy(send_message.data(), &PC_1, sizeof(PC_1));
         memcpy(send_message.data(), &PC_1_Send, sizeof(PC_1_Send));
         publisher.send(send_message);
-        
 
-        if (cv::waitKey(1) == 'q') {
-            break;
-        }
         mv_capture_.cameraReleasebuff();   // 释放这一帧的内容
 #ifndef SHOW_RUNTIME
         auto end = std::chrono::system_clock::now();
-        std::cout << "整体时间" << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl << std::endl;
+        auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << "整体时间" << diff << "ms" << std::endl << std::endl;
 #endif  // SHOW_RUNTIME
+
+#ifndef SHOW_IMG
+    // 在原图上绘制检测结果 start
+        // 绘制 矩形(rectangle) 和 类编号(class_id)
+        for (size_t j = 0; j < car.size(); j++) {               // car.size() 该图检测到多少个class
+            // if( car[j].class_id == 0) {
+                cv::Rect r  = get_rect(img, car[j].bbox);
+                // r           = r + cv::Point(0, r.height/2);       //平移，左上顶点的 `x坐标`不变，`y坐标` +r.height/2
+                // r           = r + cv::Size (0, -r.height/2);      //缩放，左上顶点不变，宽度不变，高度减半
+                cv::rectangle(img, r, cv::Scalar(0xff, 0xff, 0xff), 2);
+                cv::putText(img, std::to_string((int)car[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+            // }
+        }
+        cv::putText(img, "swapColorModes: " + std::to_string(PC_1_Send.swapColorModes),  cv::Point(50, 50),  cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "pangolin      : " + std::to_string(PC_1_Send.pangolin),        cv::Point(50, 100), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "FPS           : " + std::to_string(diff),                      cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+/*
+        // 在原图上画装甲板opt4
+        const cv::Scalar colors[3] = {{255, 0, 0}, {0, 0, 255}, {0, 255, 0}};
+        for (const auto &b : armor) {
+            cv::line(img, b.pts[0], b.pts[1], colors[2], 2);
+            cv::line(img, b.pts[1], b.pts[2], colors[2], 2);
+            cv::line(img, b.pts[2], b.pts[3], colors[2], 2);
+            cv::line(img, b.pts[3], b.pts[0], colors[2], 2);
+            cv::putText(img, std::to_string(b.tag_id), b.pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, colors[b.color_id]);
+        }
+*/
+    // 在原图上绘制检测结果 end
+        cv::imshow("yolov5", img);
+        if (cv::waitKey(1) == 'q') {
+            break;
+        }
+#endif // SHOW_IMG
+
     }
     cap.release();
 }
