@@ -23,7 +23,7 @@
 typedef struct 
 {
     cv::Point2f carPosition;    // 车当前坐标
-    bool        hasAlly;       // 存在队友?  FALSE / TRUE
+    bool        hasAlly;        // 存在队友?  FALSE / TRUE
 } RobotCarPositionSend;
 
 
@@ -64,11 +64,20 @@ class Message {
         int             pangolinIs_1;
         int             pangolinIs_2;
 
+        const std::string whoAmI    = "blue"; // blue or red 现在是蓝方还是红方
+        // 检测同色同号主要靠主哨岗检测，检测同色同号条件为 [严格] or [宽松]
+        //      [严格]需要场上四台车都在, 但条件还是很严格(主哨岗连续检测+条件严格), 主哨岗检测不完全就不行;
+        //      [宽松]不限场上多少台车, 主哨岗能连续检测到一对同色同号即可, 但主哨岗检测不到还是不行;
+        const std::string swapColorCondition = "relaxed"; // strict or relaxed
+
     public:
         Message();
         ~Message();
         void init();
         CarInfoSend operator()(std::vector<car>& result, CarInfoSend& PC_2, bool& receive_sentry, RobotCarPositionSend& car1Info, bool& receive_car1, RobotCarPositionSend& car2Info, bool& receive_car2);
+
+        void CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1_2, cv::Point2f& CarLocation2, cv::Point2f& CarLocation2_2);
+        void swapPointCheck(cv::Point2f& point1, cv::Point2f& point2);
 };
 
 Message::Message() {
@@ -138,12 +147,21 @@ cv::Point2f getMean(const cv::Point2f& point1, const cv::Point2f& point2) {
 
 // 当出现同号同色的两车时才调用该函数
 /*      需要 Point1 的点为靠近哨岗的点
-        判断 y轴值相近 asb<=20 (以主哨岗为原点, 808边为y轴)
+        判断 y轴值相近 fasb<=20 (以主哨岗为参考点测距)
         选择面积小的点为point1
 */
-void swapPointCheck(cv::Point2f& point1, cv::Point2f& point2) {
-    static cv::Point2f myPosition = cv::Point2f(0.0, 0.0);  // 当前哨岗全局坐标, 后期换坐标系表示的时候，需要改一下
-    if ( ( std::fabs(point1.y-point2.y) <= 20 ) &&          // 808的边用y表示, 若这两个坐标的y轴相近,则需要取判断那个比较靠近主哨岗, !如果后期更换坐标系表示,y不再表示808这条边,则这段代码需要改动
+void Message::swapPointCheck(cv::Point2f& point1, cv::Point2f& point2) {
+    static cv::Point2f myPosition;
+    if (Message::whoAmI == "blue") {
+        myPosition = cv::Point2f(0.0, 808.0);  // 当前主哨岗全局坐标
+    }
+    else if (Message::whoAmI == "red") {
+        myPosition = cv::Point2f(0.0, 0.0);    // 当前主哨岗全局坐标
+    }
+
+    // static cv::Point2f myPosition = cv::Point2f(0.0, 0.0);  // 当前哨岗全局坐标, 若换坐标系表示的时候，需要改
+
+    if ( ( std::fabs(point1.y-point2.y) <= 20 ) &&          // 808的边用y表示, 若这两个坐标的y轴相近,则需要取判断那个比较靠近主哨岗, !如果要更换坐标系表示,y不再表示808这条边,则这段代码需要改动为x
          ( getDistance(point1, myPosition) > getDistance(point2, myPosition) )
     ) {
         std::swap(point1, point2);
@@ -155,7 +173,7 @@ void swapPointCheck(cv::Point2f& point1, cv::Point2f& point2) {
     主哨岗: CarLocation1, CarLocation1_2
     副哨岗: CarLocation2, CarLocation2_2
 */
-void CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1_2, cv::Point2f& CarLocation2, cv::Point2f& CarLocation2_2) {
+void Message::CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1_2, cv::Point2f& CarLocation2, cv::Point2f& CarLocation2_2) {
     // 0: 无任何数据
     if ( (CarLocation1   == cv::Point2f(-1,-1) && CarLocation2   == cv::Point2f(-1,-1)) && 
          (CarLocation1_2 == cv::Point2f(-1,-1) && CarLocation2_2 == cv::Point2f(-1,-1))
@@ -367,30 +385,45 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
         PC_1.red2_2  != cv::Point2f(-1, -1)) {
         Message::singleFrameSameColorNumSroce += 1;
     }
-    // 记录同车同号出现的帧数
-    /*
-        一: 无车死亡
-            [无灰车 PC_1.gray_num == 0, 单帧 车同号同色 情况出现两次 Message::singleFrameSameColorNumSroce == 2 ] -------> sameColorNumFrames+=1
-        二: 己方未死, 敌方死一台
-            [有灰车 PC_1.gray_num == 1, 单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
-        三: 己方死一台, 敌方未死
-            [有灰车 PC_1.gray_num == 1, 单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
-        四: 双方各死一台
-            [PC_1.gray_num == 2,       单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
 
-        但由于三四都为己方死一台车为前提, 就不必考虑是否误伤队友, 这时 sameColorNumFrames和socketInfo.swapColorModes 的值是什么已经无所谓了
-    */
+
     static float sameColorNumFramesThreshold = 30;
     if (Message::sameColorNumFrames < sameColorNumFramesThreshold) {
-        if (PC_1.gray_num != 2 && Message::singleFrameSameColorNumSroce + PC_1.gray_num == 2) {
-            Message::sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
+        // 场上四辆车,严格的条件,主哨岗能一直检测到全部车辆(至少三辆车), 才能判断
+        if (Message::swapColorCondition == "strict") {
+            // 记录同车同号出现的帧数
+            /*
+                一: 无车死亡
+                    [无灰车 PC_1.gray_num == 0, 单帧 车同号同色 情况出现两次 Message::singleFrameSameColorNumSroce == 2 ] -------> sameColorNumFrames+=1
+                二: 己方未死, 敌方死一台
+                    [有灰车 PC_1.gray_num == 1, 单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
+                三: 己方死一台, 敌方未死
+                    [有灰车 PC_1.gray_num == 1, 单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
+                四: 双方各死一台
+                    [PC_1.gray_num == 2,       单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
+
+                但由于三四都为己方死一台车为前提, 就不必考虑是否误伤队友, 这时 sameColorNumFrames和socketInfo.swapColorModes 的值是什么已经无所谓了
+            */
+            if (PC_1.gray_num != 2 && Message::singleFrameSameColorNumSroce + PC_1.gray_num == 2) {
+                Message::sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
+            }
+            else if (PC_1.gray_num == 2 && Message::singleFrameSameColorNumSroce==1) {
+                Message::sameColorNumFrames += 1;
+            }
+            else {
+                Message::sameColorNumFrames -= 2;
+                Message::sameColorNumFrames = relu(Message::sameColorNumFrames);
+            }
         }
-        else if (PC_1.gray_num == 2 && Message::singleFrameSameColorNumSroce==1) {
-            Message::sameColorNumFrames += 1;
-        }
-        else {
-            Message::sameColorNumFrames -= 2;
-            Message::sameColorNumFrames = relu(Message::sameColorNumFrames);
+        // 宽松的条件, 不限场上多少辆车, 只要主哨岗连续紧密地检测到同色同号条件即可
+        else if (Message::swapColorCondition == "relaxed") {
+            if (Message::singleFrameSameColorNumSroce == 1) {
+                Message::sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
+            }
+            else {
+                Message::sameColorNumFrames -= 2;
+                Message::sameColorNumFrames = relu(Message::sameColorNumFrames);
+            }
         }
     }
     // 当sameColorNumFrames累积达到某个阈值时，即多次检测到[两辆同车同号]的情况出现时 --> 确认潜伏模式后的车车颜色交换情况
@@ -398,24 +431,25 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
         PC_1.swapColorModes = 1;      // 达到阈值, 判定 1 --> 最麻烦的情况, 敌我车辆同号同色
     }
 
-
-    /*  这里添加坐标轴转换代码
-        把所有要传输的坐标点数据转为小车的坐标系, 方便整合
-    */
-    flip_vertical(PC_1.blue1.y);
-    flip_vertical(PC_1.blue2.y);
-    flip_vertical(PC_1.red1.y);
-    flip_vertical(PC_1.red2.y);
+/* 这部分不需要了, 前面矫正函数部分已经做了该工作
+    //   这里添加坐标轴转换代码
+    //     把所有要传输的坐标点数据转为小车的坐标系, 方便整合
+    //
+    // flip_vertical(PC_1.blue1.y);
+    // flip_vertical(PC_1.blue2.y);
+    // flip_vertical(PC_1.red1.y);
+    // flip_vertical(PC_1.red2.y);
+*/
 
     /*  查卧底
             bool receive_car1   表示是否接收到car1位置数据
             bool receive_car2   表示是否接收到car2位置数据
     */
-    static std::string whoAmI    = "blue"; // blue or red
+    // static std::string whoAmI    = "blue"; // blue or red
     static cv::Point2f nothing   = cv::Point2f(-1,-1);
     static float       pangolinDistanceThreshold = 70;
     
-    if (whoAmI == "blue") {
+    if (Message::whoAmI == "blue") {
         if (receive_car1 == true) {
             float min_dis_car = getDistance(cv::Point2f(808+10, 448+10), nothing);
             float dis_car;
@@ -503,7 +537,7 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
             }
         }
     }
-    else if (whoAmI == "red") {
+    else if (Message::whoAmI == "red") {
         if (receive_car1 == true) {
             float min_dis_car = getDistance(cv::Point2f(808+10, 448+10), nothing);
             float dis_car;
