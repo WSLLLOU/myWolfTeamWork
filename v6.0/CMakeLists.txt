@@ -20,17 +20,14 @@ find_package(Threads)
 
 include_directories(.)
 include_directories(./TRTX)
-include_directories(./opt4)
 include_directories(./camera)
 
 add_subdirectory(TRTX)
-add_subdirectory(opt4)
 add_subdirectory(camera)
 
 
 add_executable(main yolov5main)
 target_link_libraries(main yolov5)    # fmt::fmt
-target_link_libraries(main opt4)
 target_link_libraries(main mv_video_capture)
 target_link_libraries(main cppzmq)
 target_link_libraries(main ${CMAKE_THREAD_LIBS_INIT})
