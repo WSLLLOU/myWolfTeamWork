@@ -58,8 +58,8 @@ class Monitoring {
         Monitoring(cv::Mat& warpmatrix);
         ~Monitoring();
         cv::Point2f     getTargetPoint (const cv::Point& ptOrigin);
-        void            analyseData(std::vector<Yolo::Detection>& predicts, std::vector<bbox_t>& opt4Armor, std::vector<car>& allCar, std::vector<armor>& allArmor, cv::Mat& img, cv::Mat& warpmatrix);
-        void            run (std::vector<Yolo::Detection>& rtxCars, std::vector<bbox_t>& opt4Armor, cv::Mat& img, std::vector<car>& result);
+        void            analyseData(std::vector<Yolo::Detection>& predicts, std::vector<car>& allCar, std::vector<armor>& allArmor, cv::Mat& img, cv::Mat& warpmatrix);
+        void            run (std::vector<Yolo::Detection>& rtxCars, cv::Mat& img, std::vector<car>& result);
         void            fixCarPosition(std::vector<car>& allCar);
         inline cv::Mat& getmatrix()  { return this->warpmatrix; }
 };
@@ -95,7 +95,7 @@ bool SortByConf(const Yolo::Detection& predicts_1, const Yolo::Detection& predic
 }
 
 // 分析参数 到 --> allCar 
-void Monitoring::analyseData(std::vector<Yolo::Detection>& predicts, std::vector<bbox_t>& opt4Armor, std::vector<car>& allCar, std::vector<armor>& allArmor, cv::Mat& img, cv::Mat& warpmatrix) {
+void Monitoring::analyseData(std::vector<Yolo::Detection>& predicts, std::vector<car>& allCar, std::vector<armor>& allArmor, cv::Mat& img, cv::Mat& warpmatrix) {
     std::sort(predicts.begin(), predicts.end(), SortByConf);    // 按置信度升序
     // 分类数据（分析）
     // 分到 allCar 和 allArmor
@@ -153,35 +153,6 @@ void Monitoring::analyseData(std::vector<Yolo::Detection>& predicts, std::vector
         }
     }
 
-/*
-    // 上交四点模型
-    // 四点     opt4Armor[i].pts               [0] [1] [2] [3]
-    // 数字     opt4Armor[i].tag_id            1   2   3   4   5
-    // 颜色     opt4Armor[i].color_id          0蓝 1红 2黑
-    for (int j = 0; j < opt4Armor.size(); j++) {
-        static armor       temp_armor;
-        static cv::Point2f img_armor_center;
-
-        // img_center
-        img_armor_center = opt4ToCenter(opt4Armor[j].pts);
-        temp_armor.img_center = img_armor_center;
-
-        // color
-        temp_armor.color = opt4Armor[j].color_id;   // 0蓝 1红 2黑
-
-        // armor_num
-        if( opt4Armor[j].tag_id == 2 ) {
-            temp_armor.num  = opt4Armor[j].tag_id;  // 1 / 2
-        }
-        else {
-            temp_armor.num  = 1;
-        }
-
-        // 
-        allArmor.push_back(temp_armor);
-    }
-*/
-
     // rect.contains(cv::Point(x, y));              //返回布尔变量，判断rect是否包含Point(x, y)点
     // center (r.x+r.width/2, r.y+r.height/2)
     // 判断 [car 的矩形框[] 中是否有 [armor 的中心点] 存在
@@ -223,7 +194,7 @@ void Monitoring::fixCarPosition(std::vector<car>& allCar) {
     }
 }
 
-void Monitoring::run(std::vector<Yolo::Detection>& rtxCars, std::vector<bbox_t>& opt4Armor, cv::Mat& img, std::vector<car>& result) {
+void Monitoring::run(std::vector<Yolo::Detection>& rtxCars, cv::Mat& img, std::vector<car>& result) {
     // 
     allCar.clear();
     allCar.shrink_to_fit();
@@ -231,7 +202,7 @@ void Monitoring::run(std::vector<Yolo::Detection>& rtxCars, std::vector<bbox_t>&
     allArmor.shrink_to_fit();
 
     // 分析信息 (中途已透视变换)
-    analyseData(rtxCars, opt4Armor, allCar, allArmor, img, warpmatrix);
+    analyseData(rtxCars, allCar, allArmor, img, warpmatrix);
 
     // 矫正透视变换点
     fixCarPosition(allCar);
