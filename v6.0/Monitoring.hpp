@@ -128,23 +128,23 @@ void Monitoring::analyseData(std::vector<Yolo::Detection>& predicts, std::vector
             // color && armor_num
             // color // 0蓝 1红 2黑
             // armor // 1 / 2
-            if (predict.class_id == 1) {
+            if (predict.class_id == 1) {        // armor_1_blue
                 temp_armor.color    = 0;
                 temp_armor.num      = 1;
             }
-            else if (predict.class_id == 2) {
+            else if (predict.class_id == 2) {   // armor_2_blue
                 temp_armor.color    = 0;
                 temp_armor.num      = 2;
             }
-            else if (predict.class_id == 3) {
+            else if (predict.class_id == 3) {   // armor_1_red
                 temp_armor.color    = 1;
                 temp_armor.num      = 1;
             }
-            else if (predict.class_id == 4) {
+            else if (predict.class_id == 4) {   // armor_2_red
                 temp_armor.color    = 1;
                 temp_armor.num      = 2;
             }
-            else if (predict.class_id == 5) {
+            else if (predict.class_id == 5) {   // armor_gray
                 temp_armor.color    = 2;
                 temp_armor.num      = -1;       // 主不关心，死车号数
             }
