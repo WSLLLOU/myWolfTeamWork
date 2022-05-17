@@ -37,6 +37,10 @@ typedef struct {			// 套接字内容
     // 在潜伏模式后, 己方车辆发送 [自身的地图坐标&队友是否死亡的信息] 给主哨岗, 主哨岗取其信息进行卧底车牌号判断
     int pangolin;           // 穿山甲
     
+    // 占着茅坑不拉屎 1 2
+    bool a_dog_in_the_toilet_on_shit_1;
+    bool a_dog_in_the_toilet_on_shit_2;
+
     cv::Point2f blue1;
     cv::Point2f blue2;
     cv::Point2f red1;
@@ -46,6 +50,11 @@ typedef struct {			// 套接字内容
     cv::Point2f blue2_2;
     cv::Point2f red1_2;
     cv::Point2f red2_2;
+
+    cv::Point2f gray_1;
+    cv::Point2f gray_2;
+    cv::Point2f gray_3;
+    cv::Point2f gray_4;
 
 } CarInfoSend;
 
@@ -102,6 +111,9 @@ void Message::init() {
 
     PC_1.pangolin = -1;  // 穿山甲-1初始化
 
+    PC_1.a_dog_in_the_toilet_on_shit_1 = false;
+    PC_1.a_dog_in_the_toilet_on_shit_2 = false;
+
     PC_1.gray_num = 0;
     PC_1.swapColorModes = 0;
 
@@ -128,6 +140,18 @@ void Message::init() {
 
     PC_1.red2_2.x = -1;
     PC_1.red2_2.y = -1;
+
+    PC_1.gray_1.x = -1;
+    PC_1.gray_1.y = -1;
+
+    PC_1.gray_2.x = -1;
+    PC_1.gray_2.y = -1;
+
+    PC_1.gray_3.x = -1;
+    PC_1.gray_3.y = -1;
+
+    PC_1.gray_4.x = -1;
+    PC_1.gray_4.y = -1;
 }
 
 float relu(float _frame) {
@@ -160,10 +184,10 @@ cv::Point2f getMean(const cv::Point2f& point1, const cv::Point2f& point2) {
 void Message::swapPointCheck(cv::Point2f& point1, cv::Point2f& point2) {
     static cv::Point2f myPosition;
     if (Message::whoAmI == "blue") {
-        myPosition = cv::Point2f(0.0, 808.0);  // 当前主哨岗全局坐标
+        myPosition = cv::Point2f(0.0, 808.0);  // 当前地图中主哨岗的全局坐标
     }
     else if (Message::whoAmI == "red") {
-        myPosition = cv::Point2f(0.0, 0.0);    // 当前主哨岗全局坐标
+        myPosition = cv::Point2f(0.0, 0.0);    // 当前地图中主哨岗的全局坐标
     }
 
     // static cv::Point2f myPosition = cv::Point2f(0.0, 0.0);  // 当前哨岗全局坐标, 若换坐标系表示的时候，需要改
@@ -352,13 +376,65 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
             //     PC_1.gray_num += 1;
             // }
         }
-        else {
+        else {  // 现在只剩下 [灰装甲板](num==-1) / [无装甲板] 车辆了,需要把 灰车数据保存下来
             if (info.color == 2) {
                 PC_1.gray_num += 1;
+
+                if (PC_1.gray_num == 1) {
+                    PC_1.gray_1 = info.carPositionFixed;
+                }
+                else if (PC_1.gray_num == 2) {
+                    PC_1.gray_2 = info.carPositionFixed;
+                }
+                else if (PC_1.gray_num == 3) {
+                    PC_1.gray_3 = info.carPositionFixed;
+                }
+                else if (PC_1.gray_num == 4) {
+                    PC_1.gray_4 = info.carPositionFixed;
+                }
             }
         }
     }
     
+    // 占着茅坑不拉屎判断
+    // PC_1.a_dog_in_the_toilet_on_shit_1 一号茅坑判断
+    // static cv::Rect buff_1 当前地图的 [一号茅坑]的(左上角位置和宽高大小)
+    static cv::Rect buff_1 = cv::Rect(255,23 , 48,54); // x, y, width, height
+    if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
+        PC_1.gray_1 != cv::Point2f(-1,-1)) {
+            PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_1);
+    }
+    else if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
+        PC_1.gray_2 != cv::Point2f(-1,-1)) {
+                PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_2);
+    }
+    else if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
+        PC_1.gray_3 != cv::Point2f(-1,-1)) {
+                PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_3);
+    }
+    else if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
+        PC_1.gray_4 != cv::Point2f(-1,-1)) {
+                PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_4);
+    }
+    // PC_1.a_dog_in_the_toilet_on_shit_2 二号茅坑判断
+    // static cv::Rect buff_2 当前地图的 [二号茅坑]的(左上角位置和宽高大小)
+    static cv::Rect buff_2 = cv::Rect(145,731 , 48,54); // x, y, width, height
+    if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
+        PC_1.gray_1 != cv::Point2f(-1,-1)) {
+            PC_1.a_dog_in_the_toilet_on_shit_2 = buff_2.contains(PC_1.gray_1);
+    }
+    else if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
+        PC_1.gray_2 != cv::Point2f(-1,-1)) {
+                PC_1.a_dog_in_the_toilet_on_shit_2 = buff_2.contains(PC_1.gray_2);
+    }
+    else if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
+        PC_1.gray_3 != cv::Point2f(-1,-1)) {
+                PC_1.a_dog_in_the_toilet_on_shit_2 = buff_2.contains(PC_1.gray_3);
+    }
+    else if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
+        PC_1.gray_4 != cv::Point2f(-1,-1)) {
+                PC_1.a_dog_in_the_toilet_on_shit_2 = buff_2.contains(PC_1.gray_4);
+    }
 
     /* 数据融合
         bool receive 表示是否接收到副哨岗的信息
