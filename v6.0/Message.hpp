@@ -440,11 +440,11 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
         bool receive 表示是否接收到副哨岗的信息
     */
     if (receive_sentry) {
-        // PC_1.blue1   PC_1.blue1_2    PC_2.blue1  PC_1.blue1_2  ==> 除去 cv::Point2f(-1, -1)的, 剩下的去聚类, 以此类推
-        CarPlaceMerge(PC_1.blue1, PC_1.blue1_2, PC_2.blue1, PC_1.blue1_2);
-        CarPlaceMerge(PC_1.red1,  PC_1.red1_2,  PC_2.red1,  PC_1.red1_2);
-        CarPlaceMerge(PC_1.blue2, PC_1.blue2_2, PC_2.blue2, PC_1.blue2_2);
-        CarPlaceMerge(PC_1.red2,  PC_1.red2_2,  PC_2.red2,  PC_1.red2_2);
+        // PC_1.blue1   PC_1.blue1_2    PC_2.blue1  PC_2.blue1_2  ==> 除去 cv::Point2f(-1, -1)的, 剩下的去聚类, 以此类推
+        CarPlaceMerge(PC_1.blue1, PC_1.blue1_2, PC_2.blue1, PC_2.blue1_2);
+        CarPlaceMerge(PC_1.red1,  PC_1.red1_2,  PC_2.red1,  PC_2.red1_2);
+        CarPlaceMerge(PC_1.blue2, PC_1.blue2_2, PC_2.blue2, PC_2.blue2_2);
+        CarPlaceMerge(PC_1.red2,  PC_1.red2_2,  PC_2.red2,  PC_2.red2_2);
 
         // 选两个哨岗检测出的死车max数
         PC_1.gray_num = std::max(PC_1.gray_num, PC_2.gray_num);
