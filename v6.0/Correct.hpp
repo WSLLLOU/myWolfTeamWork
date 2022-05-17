@@ -60,8 +60,8 @@ void correct_function_2(cv::Point2f& carPosition, cv::Point2f& carPositionFixed,
     static float watchDog   = 1789.0;   // 1768 -- 20cm*20cm*20cm -- 5kg
     static float carHeight  = 250.0;
     static float nicetry    = carHeight / watchDog;
-    static float offset_x   = 8;
-    static float offset_y   = 15;
+    static float offset_x   = 9;
+    static float offset_y   = 12;
     carPositionFixed.x = (carPosition.x + offset_x) * (1.0 - nicetry);
     carPositionFixed.y = (carPosition.y + offset_y) * (1.0 - nicetry);
 
