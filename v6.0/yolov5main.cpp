@@ -1,5 +1,4 @@
 #include "yolov5.hpp"
-#include "TRTModule.hpp"
 #include "Monitoring.hpp"
 #include "Mapinfo.hpp"
 #include "Message.hpp"
@@ -23,18 +22,24 @@ struct Send{			// 套接字内容
 
     int pangolin;          // 卧底
 
+    // 占着茅坑不拉屎 1 2
+    bool buff_1_;  // a_dog_in_the_toilet_on_shit_1
+    bool buff_2_;  // a_dog_in_the_toilet_on_shit_2
+
     cv::Point2f blue1;
     cv::Point2f blue2;
     cv::Point2f red1;
     cv::Point2f red2;
 
-    Send(int swapColorModes, int pangolin, cv::Point2f blue1, cv::Point2f blue2, cv::Point2f red1, cv::Point2f red2) {
+    Send(int& swapColorModes, int& pangolin, cv::Point2f& blue1, cv::Point2f& blue2, cv::Point2f& red1, cv::Point2f& red2, bool& buff_1_, bool& buff_2_) {
         this->swapColorModes = swapColorModes;
         this->pangolin = pangolin;
         this->blue1 = blue1;
         this->blue2 = blue2;
         this->red1  = red1;
         this->red2  = red2;
+        this->buff_1_ = buff_1_;
+        this->buff_2_ = buff_2_;
     }
 };
 
@@ -152,7 +157,6 @@ void start_1() {
 
     std::vector<car>    result;        // 捕获结果 [模型推理后的信息处理结果 --> 详情看car结构体]
     TRTX                wsl(engine_name);
-    // TRTModule           model("/home/wsl/myWolfTeamWorking/v6.0/opt4/model-opt-4.onnx");
     cv::Mat             img;
 
     mindvision::VideoCapture mv_capture_ = mindvision::VideoCapture(
@@ -201,10 +205,7 @@ void start_1() {
 
         auto car = wsl(img);                    // 检测 车车
 
-        std::vector<bbox_t> armor;
-        // armor = model(img);                     // 检测 装甲板 opt4
-
-        wolfEye.run(car, armor, img, result);   // 得出结果 ————> result 
+        wolfEye.run(car, img, result);   // 得出结果 ————> result 
 
 #ifndef MAPINFO_OFF
         // mapInfo.showTransformImg(img);                          // ++ 显示透视变换后的图片
@@ -212,7 +213,6 @@ void start_1() {
 #endif  // MAPINFO_OFF
 
 mtx.lock();
-        // mapInfo.showMapInfo2(PC_2);
         // 获取需要发送的消息内容 // receive: 接收到数据,则融合 || 未接收到,则跳过
         PC_1 = chong(result, PC_2, receive_sentry, sentry_online, car1Info, receive_car1, car2Info, receive_car2);
         // // 重置接收数据flag
@@ -225,20 +225,20 @@ mtx.unlock();
         mapInfo.showMapInfo2(PC_1); // 显示融合后的数据
 #endif  // MAPINFO_OFF
 
-        Send PC_1_Send(PC_1.swapColorModes, PC_1.pangolin, PC_1.blue1, PC_1.blue2, PC_1.red1, PC_1.red2); // 要传输的给RoboCar的消息
+        Send PC_1_Send(PC_1.swapColorModes, PC_1.pangolin, PC_1.blue1, PC_1.blue2, PC_1.red1, PC_1.red2, PC_1.a_dog_in_the_toilet_on_shit_1, PC_1.a_dog_in_the_toilet_on_shit_2); // 要传输的给RoboCar的消息
 
         std::cout << "发送的内容是" << std::endl;
         std::cout << "swapColorModes:" << PC_1_Send.swapColorModes  << std::endl;
         std::cout << "pangolin:      " << PC_1_Send.pangolin        << std::endl;
+        std::cout << "buff_1_:       " << PC_1_Send.buff_1_         << std::endl;
+        std::cout << "buff_2_:       " << PC_1_Send.buff_1_         << std::endl;
         std::cout << "blue1:         " << PC_1_Send.blue1           << std::endl;
         std::cout << "blue2:         " << PC_1_Send.blue2           << std::endl;
         std::cout << "red1:          " << PC_1_Send.red1            << std::endl;
         std::cout << "red2:          " << PC_1_Send.red2            << std::endl;
 
         // 发送消息
-        // zmq::message_t  send_message(sizeof(CarInfoSend));
         zmq::message_t  send_message(sizeof(Send));
-        // memcpy(send_message.data(), &PC_1, sizeof(PC_1));
         memcpy(send_message.data(), &PC_1_Send, sizeof(PC_1_Send));
         publisher.send(send_message);
 
@@ -263,10 +263,12 @@ mtx.unlock();
         }
         cv::putText(img, "swapColorModes : " + std::to_string(PC_1_Send.swapColorModes),  cv::Point(50, 50),  cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
         cv::putText(img, "pangolin       : " + std::to_string(PC_1_Send.pangolin),        cv::Point(50, 100), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "FPS            : " + std::to_string(1000.0/diff),               cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "sentry_online  : " + std::to_string(sentry_online),             cv::Point(50, 250), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "receive_car1   : " + std::to_string(receive_car1),              cv::Point(50, 300), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "receive_car2   : " + std::to_string(receive_car2),              cv::Point(50, 350), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "buff_1_        : " + std::to_string(PC_1_Send.buff_1_),         cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "buff_2_        : " + std::to_string(PC_1_Send.buff_2_),         cv::Point(50, 200), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "FPS            : " + std::to_string(1000.0/diff),               cv::Point(50, 250), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "sentry_online  : " + std::to_string(sentry_online),             cv::Point(50, 350), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "receive_car1   : " + std::to_string(receive_car1),              cv::Point(50, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "receive_car2   : " + std::to_string(receive_car2),              cv::Point(50, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
 /*
         // 在原图上画装甲板opt4
         const cv::Scalar colors[3] = {{255, 0, 0}, {0, 0, 255}, {0, 255, 0}};
