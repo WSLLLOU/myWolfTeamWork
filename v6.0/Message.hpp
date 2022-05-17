@@ -399,7 +399,7 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
     // 占着茅坑不拉屎判断
     // PC_1.a_dog_in_the_toilet_on_shit_1 一号茅坑判断
     // static cv::Rect buff_1 当前地图的 [一号茅坑]的(左上角位置和宽高大小)
-    static cv::Rect buff_1 = cv::Rect(255-40,23 , 48+60,54+20); // x, y, width, height
+    static cv::Rect buff_1 = cv::Rect(255-40,23 , 48+60,54+30); // x, y, width, height
     if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
         PC_1.gray_1 != cv::Point2f(-1,-1)) {
             PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_1);
