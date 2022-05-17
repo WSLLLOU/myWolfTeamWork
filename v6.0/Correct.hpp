@@ -57,11 +57,13 @@ void correct_function_2(cv::Point2f& carPosition, cv::Point2f& carPositionFixed,
     }
 
     // 坐标误差矫正
-    static float watchDog   = 1789.0;
+    static float watchDog   = 1789.0;   // 1768 -- 20cm*20cm*20cm -- 5kg
     static float carHeight  = 250.0;
     static float nicetry    = carHeight / watchDog;
-    carPositionFixed.x = carPosition.x * (1.0 - nicetry);
-    carPositionFixed.y = carPosition.y * (1.0 - nicetry);
+    static float offset_x   = 8;
+    static float offset_y   = 15;
+    carPositionFixed.x = (carPosition.x + offset_x) * (1.0 - nicetry);
+    carPositionFixed.y = (carPosition.y + offset_y) * (1.0 - nicetry);
 
     // 坐标轴翻转 至 roboCar需要的坐标轴
     if (mothed == 0) {
