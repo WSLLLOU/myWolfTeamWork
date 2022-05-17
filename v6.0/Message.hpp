@@ -404,15 +404,15 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
         PC_1.gray_1 != cv::Point2f(-1,-1)) {
             PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_1);
     }
-    else if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
+    if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
         PC_1.gray_2 != cv::Point2f(-1,-1)) {
                 PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_2);
     }
-    else if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
+    if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
         PC_1.gray_3 != cv::Point2f(-1,-1)) {
                 PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_3);
     }
-    else if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
+    if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
         PC_1.gray_4 != cv::Point2f(-1,-1)) {
                 PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_4);
     }
@@ -423,15 +423,15 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
         PC_1.gray_1 != cv::Point2f(-1,-1)) {
             PC_1.a_dog_in_the_toilet_on_shit_2 = buff_2.contains(PC_1.gray_1);
     }
-    else if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
+    if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
         PC_1.gray_2 != cv::Point2f(-1,-1)) {
                 PC_1.a_dog_in_the_toilet_on_shit_2 = buff_2.contains(PC_1.gray_2);
     }
-    else if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
+    if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
         PC_1.gray_3 != cv::Point2f(-1,-1)) {
                 PC_1.a_dog_in_the_toilet_on_shit_2 = buff_2.contains(PC_1.gray_3);
     }
-    else if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
+    if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
         PC_1.gray_4 != cv::Point2f(-1,-1)) {
                 PC_1.a_dog_in_the_toilet_on_shit_2 = buff_2.contains(PC_1.gray_4);
     }
