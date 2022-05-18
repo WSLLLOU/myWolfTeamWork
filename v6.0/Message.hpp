@@ -229,8 +229,8 @@ void Message::CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1
               (CarLocation1_2 == cv::Point2f(-1,-1) && CarLocation2_2 == cv::Point2f(-1,-1))
     ) {
         float distanceCar = getDistance(CarLocation1, CarLocation2);
-        // 两点距离超过 [100] 厘米, 判定为两台不一样的车
-        if (distanceCar > 100) {
+        // 两点距离超过 [60] 厘米, 判定为两台不一样的车
+        if (distanceCar > 60) {
             // CarLocation1 无需改动
             CarLocation1_2 = CarLocation2;  // 副哨岗赋值给主哨岗
             swapPointCheck(CarLocation1, CarLocation1_2);
@@ -477,60 +477,59 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
             Message::singleFrameSameColorNumSroce += 1;
         }
 
-        static float sameColorNumFramesThreshold = 35;
-        if (Message::sameColorNumFrames < sameColorNumFramesThreshold) {
-            // 场上四辆车,严格的条件,主哨岗能一直检测到全部车辆(至少三辆车), 才能判断
-            if (Message::swapColorCondition == "strict") {
-                // 记录同车同号出现的帧数
-                /*
-                    一: 无车死亡
-                        [无灰车 PC_1.gray_num == 0, 单帧 车同号同色 情况出现两次 Message::singleFrameSameColorNumSroce == 2 ] -------> sameColorNumFrames+=1
-                    二: 己方未死, 敌方死一台
-                        [有灰车 PC_1.gray_num == 1, 单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
-                    三: 己方死一台, 敌方未死
-                        [有灰车 PC_1.gray_num == 1, 单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
-                    四: 双方各死一台
-                        [PC_1.gray_num == 2,       单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
+    }
 
-                    但由于三四都为己方死一台车为前提, 就不必考虑是否误伤队友, 这时 sameColorNumFrames和socketInfo.swapColorModes 的值是什么已经无所谓了
-                */
-                if (PC_1.gray_num != 2 && Message::singleFrameSameColorNumSroce + PC_1.gray_num == 2) {
-                    Message::sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
-                }
-                else if (PC_1.gray_num == 2 && Message::singleFrameSameColorNumSroce==1) {
-                    Message::sameColorNumFrames += 1;
-                }
-                else {
-                    Message::sameColorNumFrames -= 2;
-                    Message::sameColorNumFrames = relu(Message::sameColorNumFrames);
-                }
+    static int sameColorNumFramesThreshold = 35;
+    if (Message::sameColorNumFrames < sameColorNumFramesThreshold) {
+        // 场上四辆车,严格的条件,主哨岗能一直检测到全部车辆(至少三辆车), 才能判断
+        if (Message::swapColorCondition == "strict") {
+            // 记录同车同号出现的帧数
+            /*
+                一: 无车死亡
+                    [无灰车 PC_1.gray_num == 0, 单帧 车同号同色 情况出现两次 Message::singleFrameSameColorNumSroce == 2 ] -------> sameColorNumFrames+=1
+                二: 己方未死, 敌方死一台
+                    [有灰车 PC_1.gray_num == 1, 单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
+                三: 己方死一台, 敌方未死
+                    [有灰车 PC_1.gray_num == 1, 单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
+                四: 双方各死一台
+                    [PC_1.gray_num == 2,       单帧 车同号同色 情况出现一次 Message::singleFrameSameColorNumSroce == 1 ] -------> sameColorNumFrames+=1
+
+                但由于三四都为己方死一台车为前提, 就不必考虑是否误伤队友, 这时 sameColorNumFrames和socketInfo.swapColorModes 的值是什么已经无所谓了
+            */
+            if (PC_1.gray_num != 2 && Message::singleFrameSameColorNumSroce + PC_1.gray_num == 2) {
+                Message::sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
             }
-            // 宽松的条件, 不限场上多少辆车, 只要主哨岗连续紧密地检测到同色同号条件即可
-            else if (Message::swapColorCondition == "relaxed") {
-                if (Message::singleFrameSameColorNumSroce == 1) {
-                    Message::sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
-                }
-                else {
-                    Message::sameColorNumFrames -= 2;
-                    Message::sameColorNumFrames = relu(Message::sameColorNumFrames);
-                }
+            else if (PC_1.gray_num == 2 && Message::singleFrameSameColorNumSroce==1) {
+                Message::sameColorNumFrames += 1;
+            }
+            else {
+                Message::sameColorNumFrames -= 2;
+                Message::sameColorNumFrames = relu(Message::sameColorNumFrames);
             }
         }
-        // 当sameColorNumFrames累积达到某个阈值时，即多次检测到[两辆同车同号]的情况出现时 --> 确认潜伏模式后的车车颜色交换情况
-        if (Message::sameColorNumFrames >= sameColorNumFramesThreshold) {
-            PC_1.swapColorModes = 1;      // 达到阈值, 判定 1 --> 最麻烦的情况, 敌我车辆同号同色
+        // 宽松的条件, 不限场上多少辆车, 只要主哨岗连续紧密地检测到同色同号条件即可
+        else if (Message::swapColorCondition == "relaxed") {
+            if (Message::singleFrameSameColorNumSroce == 1) {
+                Message::sameColorNumFrames += 1;            // 车同号同号色出现的帧数+1
+            }
+            else {
+                Message::sameColorNumFrames -= 2;
+                Message::sameColorNumFrames = relu(Message::sameColorNumFrames);
+            }
         }
+    }
+    // 当sameColorNumFrames累积达到某个阈值时，即多次检测到[两辆同车同号]的情况出现时 --> 确认潜伏模式后的车车颜色交换情况
+    if (Message::sameColorNumFrames >= sameColorNumFramesThreshold) {
+        PC_1.swapColorModes = 1;      // 达到阈值, 判定 1 --> 最麻烦的情况, 敌我车辆同号同色
+    }
 
-    /* 这部分不需要了, 前面矫正函数部分已经做了该工作
-        //   这里添加坐标轴转换代码
-        //     把所有要传输的坐标点数据转为小车的坐标系, 方便整合
-        //
-        // flip_vertical(PC_1.blue1.y);
-        // flip_vertical(PC_1.blue2.y);
-        // flip_vertical(PC_1.red1.y);
-        // flip_vertical(PC_1.red2.y);
-    */
-
+    
+    // receive_sentry 表示是否接收到 哨岗消息    接收到true 未接收到false
+    // sentry_online  表示哨岗是否在线          在线true   不在线false
+    // 若 (!sentry_online)==false, 则 receive_sentry ==true  ==> 副哨岗在线,  且接收到副哨岗消息,  此时进行数据融合后的      [同色同号]&[卧底] 检测
+    // 若 (!sentry_online)==ture,  则 receive_sentry ==false ==> 副哨岗掉线,  必收不到副哨岗消息,  此时进行用主哨岗信息的     [同色同号]&[卧底] 检测
+    // 若 (!sentry_online)==false, 则 receive_sentry ==false ==> 副哨岗在线,  但未接收到副哨岗消息, 此时不进行(因缺失完整信息) [同色同号]&[卧底] 检测
+    if ((!sentry_online) || receive_sentry) {
         /*  查卧底
                 bool receive_car1   表示是否接收到car1位置数据
                 bool receive_car2   表示是否接收到car2位置数据
@@ -715,26 +714,26 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
                 }
             }
         }
-
-        // 连续的卧底判断, 若达到阈值, 则结束
-        int pangolinFramesThreshold = 35;
-        if ( (Message::pangolinIs_1Frames < pangolinFramesThreshold) &&
-            (Message::pangolinIs_2Frames < pangolinFramesThreshold))  {
-            // 
-            if (Message::pangolinIs_1 == 1)     { Message::pangolinIs_1Frames+=1; Message::pangolinIs_1Frames=relu(Message::pangolinIs_1Frames); }  // 当前帧 判断 卧底是1
-            else if (Message::pangolinIs_1 == 0){ Message::pangolinIs_1Frames-=2; Message::pangolinIs_1Frames=relu(Message::pangolinIs_1Frames); }  // 当前帧 判断 卧底不是1
-            // 
-            if (Message::pangolinIs_2 == 1)     { Message::pangolinIs_2Frames+=1; Message::pangolinIs_2Frames=relu(Message::pangolinIs_2Frames); }  // 当前帧 判断 卧底是1
-            else if (Message::pangolinIs_2 == 0){ Message::pangolinIs_2Frames-=2; Message::pangolinIs_2Frames=relu(Message::pangolinIs_2Frames); }  // 当前帧 判断 卧底不是1
-        }
-        // else {
-        // 经过多帧判断卧底
-        if (Message::pangolinIs_1Frames >= pangolinFramesThreshold)      { PC_1.pangolin = 1; } // 卧底是1
-        else if (Message::pangolinIs_2Frames >= pangolinFramesThreshold) { PC_1.pangolin = 2; } // 卧底是2
-        // }
-        
     }
-    
+
+    // 连续的卧底判断, 若达到阈值帧数, 则完成判断
+    static int pangolinFramesThreshold = 35;
+    if ( (Message::pangolinIs_1Frames < pangolinFramesThreshold) &&
+        (Message::pangolinIs_2Frames < pangolinFramesThreshold))  {
+        // 
+        if (Message::pangolinIs_1 == 1)     { Message::pangolinIs_1Frames+=1; Message::pangolinIs_1Frames=relu(Message::pangolinIs_1Frames); }  // 当前帧 判断 卧底是1
+        else if (Message::pangolinIs_1 == 0){ Message::pangolinIs_1Frames-=2; Message::pangolinIs_1Frames=relu(Message::pangolinIs_1Frames); }  // 当前帧 判断 卧底不是1
+        // 
+        if (Message::pangolinIs_2 == 1)     { Message::pangolinIs_2Frames+=1; Message::pangolinIs_2Frames=relu(Message::pangolinIs_2Frames); }  // 当前帧 判断 卧底是1
+        else if (Message::pangolinIs_2 == 0){ Message::pangolinIs_2Frames-=2; Message::pangolinIs_2Frames=relu(Message::pangolinIs_2Frames); }  // 当前帧 判断 卧底不是1
+    }
+    // else {
+    // 经过多帧判断卧底
+    if (Message::pangolinIs_1Frames >= pangolinFramesThreshold)      { PC_1.pangolin = 1; } // 卧底是1
+    else if (Message::pangolinIs_2Frames >= pangolinFramesThreshold) { PC_1.pangolin = 2; } // 卧底是2
+    // }
+
+
     return this->PC_1;
 }
 
