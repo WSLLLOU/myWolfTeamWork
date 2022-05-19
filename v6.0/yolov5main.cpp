@@ -14,6 +14,8 @@
 // #define SHOW_IMG
 // #define SHOW_RUNTIME
 
+// #define WRITER 1
+
 struct Send{			// 套接字内容
 
     // int gray_num;           // 当前帧灰车的数量
@@ -104,24 +106,30 @@ void start_2(zmq::socket_t& subscriber_sentry, zmq::socket_t& subscriber_car1, z
         zmq::message_t recv_message_car2(sizeof(RobotCarPositionSend));
 
 mtx.lock();
-        receive_sentry = subscriber_sentry.recv(&recv_message_sentry, ZMQ_DONTWAIT);
-        if (receive_sentry) { 
+        receive_sentry = false;
+        while ( subscriber_sentry.recv(&recv_message_sentry, ZMQ_DONTWAIT) ) { 
             memcpy(&PC_2, recv_message_sentry.data(), sizeof(PC_2));
+            receive_sentry = true;
             sentry_last = std::chrono::system_clock::now(); // 记录副哨岗信息时间戳
         }
 
-        receive_car1 = subscriber_car1.recv(&recv_message_car1, ZMQ_DONTWAIT);
-        if (receive_car1) { 
-            memcpy(&car1Info, recv_message_car1.data(), sizeof(car1Info)); 
-
+        receive_car1 = false;
+        while ( subscriber_car1.recv(&recv_message_car1, ZMQ_DONTWAIT) ) { 
+            memcpy(&car1Info, recv_message_car1.data(), sizeof(car1Info));
+            receive_car1 = true;
+        }
+        if (receive_car1) {
             car1Info.carPosition.x *= 100;
             car1Info.carPosition.y *= 100;
         }
 
-        receive_car2 = subscriber_car2.recv(&recv_message_car2, ZMQ_DONTWAIT);
-        if (receive_car2) { 
-            memcpy(&car2Info, recv_message_car2.data(), sizeof(car2Info)); 
 
+        receive_car2 = false;
+        while ( subscriber_car2.recv(&recv_message_car2, ZMQ_DONTWAIT) ) { 
+            memcpy(&car2Info, recv_message_car2.data(), sizeof(car2Info));
+            receive_car2 = true;
+        }
+        if (receive_car2) {
             car2Info.carPosition.x *= 100;
             car2Info.carPosition.y *= 100;
         }
@@ -167,6 +175,23 @@ void start_1() {
                                                                         );
     // fps::FPS       global_fps_;
 
+#if WRITER == 1
+    // 录制
+    cv::VideoWriter writer;
+    std::string out_path = "../vedio/05_17_drak_exp40000_sencond_3.avi";    // 目标路径
+    cv::Size size(1280, 1024);                              // 重要! 要求与摄像头参数一致
+    // int fourcc = writer.fourcc('X', 'V', 'I', 'D');      // 设置avi文件对应的编码格式 66 67
+    int fourcc = writer.fourcc('M', 'J', 'P', 'G');     // 33 30 48Flv1
+    // int fourcc = writer.fourcc('F', 'L', 'V', '1');      // 33 30 48Flv1
+    writer.open(out_path, fourcc, 30, size, true);      // CAP_DSHOW = true
+    if (writer.isOpened()) {
+        std::cout << "正在录制" << std::endl;
+    }
+    else {
+        std::cout << "录制失败" << std::endl;
+    }
+#endif  // WRITER_OFF
+
     // 检测是否有免驱相机
     if (!cap.isOpened()) {
         std::cout << "Error opening video stream or file" << std::endl;
@@ -202,6 +227,10 @@ void start_1() {
         else {
             cap.read(img);
         }
+
+#if WRITER == 1
+        writer << img;
+#endif  // WRITER_OFF
 
         auto car = wsl(img);                    // 检测 车车
 
@@ -257,18 +286,38 @@ mtx.unlock();
                 cv::Rect r  = get_rect(img, car[j].bbox);
                 // r           = r + cv::Point(0, r.height/2);       //平移，左上顶点的 `x坐标`不变，`y坐标` +r.height/2
                 // r           = r + cv::Size (0, -r.height/2);      //缩放，左上顶点不变，宽度不变，高度减半
-                cv::rectangle(img, r, cv::Scalar(0xff, 0xff, 0xff), 2);
-                cv::putText(img, std::to_string((int)car[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+                cv::rectangle(img, r, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+                cv::putText(img, std::to_string((int)car[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0x00, 0xFF, 0x00), 2);
             // }
         }
-        cv::putText(img, "swapColorModes : " + std::to_string(PC_1_Send.swapColorModes),  cv::Point(50, 50),  cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "pangolin       : " + std::to_string(PC_1_Send.pangolin),        cv::Point(50, 100), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "buff_1_        : " + std::to_string(PC_1_Send.buff_1_),         cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "buff_2_        : " + std::to_string(PC_1_Send.buff_2_),         cv::Point(50, 200), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "FPS            : " + std::to_string(1000.0/diff),               cv::Point(50, 250), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "sentry_online  : " + std::to_string(sentry_online),             cv::Point(50, 350), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "receive_car1   : " + std::to_string(receive_car1),              cv::Point(50, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "receive_car2   : " + std::to_string(receive_car2),              cv::Point(50, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(img, "swapColorModes : " + std::to_string(PC_1_Send.swapColorModes),  cv::Point(50, 50),  cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "pangolin       : " + std::to_string(PC_1_Send.pangolin),        cv::Point(50, 100), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "buff_1_        : " + std::to_string(PC_1_Send.buff_1_),         cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "buff_2_        : " + std::to_string(PC_1_Send.buff_2_),         cv::Point(50, 200), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "FPS            : " + std::to_string(1000.0/diff),               cv::Point(50, 250), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "sentry_online  : " + std::to_string(sentry_online),             cv::Point(50, 350), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "receive_car1   : " + std::to_string(receive_car1),              cv::Point(50, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "receive_car2   : " + std::to_string(receive_car2),              cv::Point(50, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+
+        cv::putText(img, "car1      :", cv::Point(450, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(car1Info.carPosition.x)),    cv::Point(650, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(car1Info.carPosition.y)),    cv::Point(750, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "car2      :", cv::Point(450, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(car2Info.carPosition.x)),    cv::Point(650, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(car2Info.carPosition.y)),    cv::Point(750, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+
+        cv::putText(img, "blue1          :", cv::Point(50, 550), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_1_Send.blue1.x)),         cv::Point(350, 550), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_1_Send.blue1.y)),         cv::Point(450, 550), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "blue2:         :", cv::Point(50, 600), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_1_Send.blue2.x)),         cv::Point(350, 600), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_1_Send.blue2.y)),         cv::Point(450, 600), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "red1           :", cv::Point(50, 650), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_1_Send.red1.x)),          cv::Point(350, 650), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_1_Send.red1.y)),          cv::Point(450, 650), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "red2           :", cv::Point(50, 700), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_1_Send.red2.x)),          cv::Point(350, 700), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_1_Send.red2.y)),          cv::Point(450, 700), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
 /*
         // 在原图上画装甲板opt4
         const cv::Scalar colors[3] = {{255, 0, 0}, {0, 0, 255}, {0, 255, 0}};
@@ -293,6 +342,11 @@ mtx.unlock();
 #endif // SHOW_IMG
 
     }
+
+#if WRITER == 1
+    writer.release();
+#endif  // WRITER_OFF
+
     cap.release();
 }
 
@@ -300,7 +354,7 @@ int main(int argc, char **argv) {
     // 初始化 接收 副哨岗
     zmq::context_t receive_context_sentry(1);
     zmq::socket_t subscriber_sentry(receive_context_sentry, ZMQ_SUB);
-    subscriber_sentry.connect("tcp://192.168.1.111:6666");
+    subscriber_sentry.connect("tcp://192.168.1.154:5556");
     subscriber_sentry.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
     // 初始化 接收 car1Info
