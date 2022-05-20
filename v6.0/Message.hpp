@@ -171,12 +171,6 @@ float getDistance(const cv::Point2f& point1, const cv::Point2f& point2) {
     return distance;
 }
 
-cv::Point2f getMean(const cv::Point2f& point1, const cv::Point2f& point2) {
-    static cv::Point2f mean;
-    // 加个判断? 当双点差距过大, return point1;
-    mean = cv::Point2f((point1.x+point2.x)/2.0, (point1.y+point2.y)/2.0);
-    return mean;
-}
 
 // 当出现同号同色的两车时才调用该函数
 /*
@@ -258,6 +252,17 @@ void Message::swapPointCheck(cv::Point2f& point1, cv::Point2f& point2) {
     }
 }
 
+// 原本为 getMean函数, 发现两方哨岗得出的数据距离真实值差的不多,且偏差的位置相反,使用求均获得真实值理论上挺好的;
+// 但由于副哨岗和主哨岗之间帧数差距过大,会造成定位数据的抖动, 故而弃掉, 只要确保主副哨岗都检测到的时候, 只返回主哨岗检测的坐标数据就好了
+cv::Point2f chooseOne(const cv::Point2f& point1, const cv::Point2f& point2) {
+    // static cv::Point2f mean;
+    // // 加个判断? 当双点差距过大, return point1;
+    // mean = cv::Point2f((point1.x+point2.x)/2.0, (point1.y+point2.y)/2.0);
+    // return mean;
+    
+    return point1;
+}
+
 /*
     传入的参数表示的 [同号同色的车] 在主[1]副[2]哨岗上检测到的 [不同位置]
     主哨岗: CarLocation1, CarLocation1_2
@@ -296,7 +301,7 @@ void Message::CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1
         }
         // 判定为同一台车的坐标，数据求mean融合
         else {
-            CarLocation1 = getMean(CarLocation1, CarLocation2);
+            CarLocation1 = chooseOne(CarLocation1, CarLocation2);
         }
     }
     // 2: 主哨岗检测到两个位置，副哨岗无
@@ -321,14 +326,14 @@ void Message::CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1
         float distanceCar_2 = getDistance(CarLocation1_2, CarLocation2);
         // 若CarLocation1比CarLocation1_2 离 CarLocation2 更近,则判断CarLocation1和CarLocation2判断的为同一台车
         if (distanceCar_1 < distanceCar_2) {
-            CarLocation1 = getMean(CarLocation1, CarLocation2);
+            CarLocation1 = chooseOne(CarLocation1, CarLocation2);
             // CarLocation1_2 无需改动
             swapPointCheck(CarLocation1, CarLocation1_2);
         }
         // 反之
         else {
             // CarLocation1 无需改动
-            CarLocation1_2 = getMean(CarLocation1_2, CarLocation2);
+            CarLocation1_2 = chooseOne(CarLocation1_2, CarLocation2);
             swapPointCheck(CarLocation1, CarLocation1_2);
         }
     }
@@ -341,13 +346,13 @@ void Message::CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1
         float distanceCar_2 = getDistance(CarLocation1, CarLocation2_2);
         // 若CarLocation2比CarLocation2_2 离 CarLocation1 更近,则判断CarLocation2和CarLocation1判断的为同一台车
         if (distanceCar_1 < distanceCar_2) {
-            CarLocation1    = getMean(CarLocation1, CarLocation2);
+            CarLocation1    = chooseOne(CarLocation1, CarLocation2);
             CarLocation1_2  = CarLocation2_2;   // 副哨岗赋值给主哨岗
             swapPointCheck(CarLocation1, CarLocation1_2);
         }
         // 反之
         else {
-            CarLocation1    = getMean(CarLocation1, CarLocation2_2);
+            CarLocation1    = chooseOne(CarLocation1, CarLocation2_2);
             CarLocation1_2  = CarLocation2;
             swapPointCheck(CarLocation1, CarLocation1_2);
         }
@@ -360,14 +365,14 @@ void Message::CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1
         float distanceCar_1  = getDistance(CarLocation1, CarLocation2);
         float distanceCar_2  = getDistance(CarLocation1, CarLocation2_2);
         if (distanceCar_1 < distanceCar_2) {
-            CarLocation1    = getMean(CarLocation1,   CarLocation2);
-            CarLocation1_2  = getMean(CarLocation1_2, CarLocation2_2);
+            CarLocation1    = chooseOne(CarLocation1,   CarLocation2);
+            CarLocation1_2  = chooseOne(CarLocation1_2, CarLocation2_2);
             swapPointCheck(CarLocation1, CarLocation1_2);
         }
         // 反之
         else {
-            CarLocation1    = getMean(CarLocation1,   CarLocation2_2);
-            CarLocation1_2  = getMean(CarLocation1_2, CarLocation2);
+            CarLocation1    = chooseOne(CarLocation1,   CarLocation2_2);
+            CarLocation1_2  = chooseOne(CarLocation1_2, CarLocation2);
             swapPointCheck(CarLocation1, CarLocation1_2);
         }
     }
@@ -496,9 +501,9 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
     }
 
     /* 数据融合
-        bool receive 表示是否接收到副哨岗的信息
+        bool sentry_online 表示是否副哨岗是否还在线(若超过1s未给主哨岗发送数据,则判断为副哨岗掉线, 若重新开始给副哨岗发送信息,则刷新该标志位)
     */
-    if (receive_sentry) {
+    if (sentry_online) {
         // PC_1.blue1   PC_1.blue1_2    PC_2.blue1  PC_2.blue1_2  ==> 除去 cv::Point2f(-1, -1)的, 剩下的去聚类, 以此类推
         CarPlaceMerge(PC_1.blue1, PC_1.blue1_2, PC_2.blue1, PC_2.blue1_2);
         CarPlaceMerge(PC_1.red1,  PC_1.red1_2,  PC_2.red1,  PC_2.red1_2);
