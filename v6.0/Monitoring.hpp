@@ -189,7 +189,7 @@ void Monitoring::fixCarPosition(std::vector<car>& allCar) {
         // Car.carPositionFixed.x = fixPosX;
         // Car.carPositionFixed.y = fixPosY;
 
-        correct_function_2(Car.carPosition, Car.carPositionFixed, 0);
+        correct_function_2(Car.carPosition, Car.carPositionFixed, MOTHED);
         
     }
 }

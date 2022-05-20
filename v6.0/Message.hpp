@@ -72,11 +72,11 @@ class Message {
         int             pangolinIs_1;                   // 单帧判断卧底为1的投票, 使得 pangolinIs_1Frames ++
         int             pangolinIs_2;                   // 单帧判断卧底为2的投票, 使得 pangolinIs_1Frames ++
 
-        const std::string whoAmI    = "blue"; // blue or red 现在是蓝方还是红方
+        const std::string whoAmI    = WHO_AM_I; // blue or red 现在是蓝方还是红方
         // 检测同色同号主要靠主哨岗检测，检测同色同号条件为 [严格] or [宽松]
         //      [严格]需要场上四台车都在, 但条件还是很严格(主哨岗连续检测+条件严格), 主哨岗检测不完全就不行;
         //      [宽松]不限场上多少台车, 主哨岗能连续检测到一对同色同号即可, 但主哨岗检测不到还是不行;
-        const std::string swapColorCondition = "relaxed"; // strict or relaxed
+        const std::string swapColorCondition = SWAP_COLOR_CONDITION; // strict or relaxed
 
     public:
         Message();
@@ -195,7 +195,7 @@ void Message::sameColorCheckPoint(cv::Point2f& point_1, cv::Point2f& point_2, co
         dis_point2_carPoint = getDistance(point_2, carPoint);
     }
     
-    static float point_Car_DistanceThreshold = 70; // cm
+    static float point_Car_DistanceThreshold = POINT_CAR_DISTANCE_THRESHOLD; // cm
     // point_2离carPoint更远
     if (dis_point1_carPoint < dis_point2_carPoint) {
         // 若该point_2与carPoint的距离>=阈值, 判断point_2为敌方坐标
@@ -294,7 +294,7 @@ void Message::CarPlaceMerge(cv::Point2f& CarLocation1, cv::Point2f& CarLocation1
     ) {
         float distanceCar = getDistance(CarLocation1, CarLocation2);
         // 两点距离超过 [60] 厘米, 判定为两台不一样的车
-        if (distanceCar > 60) {
+        if (distanceCar > DISTANCE_CAR) {
             // CarLocation1 无需改动
             CarLocation1_2 = CarLocation2;  // 副哨岗赋值给主哨岗
             swapPointCheck(CarLocation1, CarLocation1_2);
@@ -461,7 +461,7 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
     }
     
     // 占着茅坑不拉屎判断
-    // PC_1.a_dog_in_the_toilet_on_shit_1 一号茅坑判断
+    // PC_1.a_dog_in_the_toilet_on_shit_1 一号茅坑判断 (F7_BUFF)
     // static cv::Rect buff_1 当前地图的 [一号茅坑]的(左上角位置和宽高大小)
     static cv::Rect buff_1 = cv::Rect(255-40,23 , 48+60,54+30); // x, y, width, height
     if (PC_1.a_dog_in_the_toilet_on_shit_1 == false && 
@@ -480,7 +480,7 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
         PC_1.gray_4 != cv::Point2f(-1,-1)) {
                 PC_1.a_dog_in_the_toilet_on_shit_1 = buff_1.contains(PC_1.gray_4);
     }
-    // PC_1.a_dog_in_the_toilet_on_shit_2 二号茅坑判断
+    // PC_1.a_dog_in_the_toilet_on_shit_2 二号茅坑判断 (F1_BUFF)
     // static cv::Rect buff_2 当前地图的 [二号茅坑]的(左上角位置和宽高大小)
     static cv::Rect buff_2 = cv::Rect(145-20,731-20 , 48+30,54+30); // x, y, width, height
     if (PC_1.a_dog_in_the_toilet_on_shit_2 == false && 
@@ -519,7 +519,7 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
     // 若 (!sentry_online)==false, 则 receive_sentry ==true  ==> 副哨岗在线,  且接收到副哨岗消息,  此时进行数据融合后的      [同色同号]&[卧底] 检测
     // 若 (!sentry_online)==ture,  则 receive_sentry ==false ==> 副哨岗掉线,  必收不到副哨岗消息,  此时进行用主哨岗信息的     [同色同号]&[卧底] 检测
     // 若 (!sentry_online)==false, 则 receive_sentry ==false ==> 副哨岗在线,  但未接收到副哨岗消息, 未有数据融合,此时不进行(因缺失完整信息) [同色同号]&[卧底] 检测
-    static int sameColorNumFramesThreshold = 35;
+    static int sameColorNumFramesThreshold = SAME_COLOR_NUM_FRAMES_THRESHOLD;
     if ((!sentry_online) || receive_sentry) {
 
         /*同色同号检测
@@ -592,7 +592,7 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
     // 若 (!sentry_online)==false, 则 receive_sentry ==true  ==> 副哨岗在线,  且接收到副哨岗消息,  此时进行数据融合后的      [同色同号]&[卧底] 检测
     // 若 (!sentry_online)==ture,  则 receive_sentry ==false ==> 副哨岗掉线,  必收不到副哨岗消息,  此时进行用主哨岗信息的     [同色同号]&[卧底] 检测
     // 若 (!sentry_online)==false, 则 receive_sentry ==false ==> 副哨岗在线,  但未接收到副哨岗消息, 此时不进行(因缺失完整信息) [同色同号]&[卧底] 检测
-    static int pangolinFramesThreshold = 35;
+    static int pangolinFramesThreshold = PANGOLIN_FRAMES_THRESHOLD;
     if ((!sentry_online) || receive_sentry) {
         /*  查卧底
                 bool receive_car1   表示是否接收到car1位置数据
@@ -600,7 +600,7 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
         */
         // static std::string whoAmI    = "blue"; // blue or red
         static cv::Point2f nothing   = cv::Point2f(-1,-1);
-        static float       pangolinDistanceThreshold = 65;
+        static float       pangolinDistanceThreshold = PANGOLIN_DISTANCE_THRESHOLD;
         
         if (Message::whoAmI == "blue") {
             if (receive_car1 == true) {

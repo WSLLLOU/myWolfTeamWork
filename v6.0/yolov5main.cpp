@@ -1,4 +1,42 @@
 #include "yolov5.hpp"
+
+// 标4点位置切换
+// 0 点四边玻璃罩子
+// 1 点中间各障碍物坐下点
+#define CHECK_4_OPT 0
+// 数据矫正函数模式
+// 0  蓝方主哨岗
+// 1  蓝方副哨岗
+// 2  红方主哨岗
+// 3  红方副哨岗
+#define MOTHED 0
+// 当前身份 蓝/红
+// "blue"   现在为蓝方    记得一定要小写,并且内容无误
+// "red"    现在为红方    记得一定要小写,并且内容无误
+#define WHO_AM_I "blue"
+// 同色同号判断严格程度
+// "strict"     [严格]需要场上四台车都在, 但条件还是很严格(主哨岗连续检测+条件严格), 主哨岗检测不完全就不行;
+// "relaxed"    [宽松]不限场上多少台车, 主哨岗能连续检测到一对同色同号即可, 但主哨岗检测不到还是不行;
+#define SWAP_COLOR_CONDITION "relaxed"
+
+// 数据融合函数距离阈值
+// distanceCar  主副哨岗数据融合, 得出相同身份的两点, 相距大于该数值(60cm), 则认为不是同一台车
+#define DISTANCE_CAR 60
+
+// 同色同号情况投票阈值
+#define SAME_COLOR_NUM_FRAMES_THRESHOLD 35
+// 卧底识别情况投票阈值
+#define PANGOLIN_FRAMES_THRESHOLD 35
+
+// 卧底识别
+// 当Car1,Car2给哨岗发数据的时候,可利用哨岗检测到的同样号数的坐标数据
+// 求两个坐标数据之间的距离,若距离小于当前设定的距离阈值, 则判断哨岗检测到的该敌方颜色车辆为己方
+#define PANGOLIN_DISTANCE_THRESHOLD 65
+// 同色同号后, 依旧可以发送敌方坐标
+// 同色同号后, 根据哨岗检测到的车辆坐标数据(同一个类别) 和 Car自身发给我的坐标数据 进行对比, 判断出那个坐标为敌方坐标
+// POINT_CAR_DISTANCE_THRESHOLD 判断离Car坐标数据最远的那个坐标数据是否超过设定的该距离阈值(70cm), 若超, 则可以判断该数据为敌方坐标
+#define POINT_CAR_DISTANCE_THRESHOLD 70
+
 #include "Monitoring.hpp"
 #include "Mapinfo.hpp"
 #include "Message.hpp"
@@ -62,8 +100,23 @@ static void onMouse1(int event, int x, int y, int, void* userInput) {
             fourPoint[times-1].y = y;
         }
         else if (times == 5) {
-		    // cv::Point2f god_view[] 	  = { cv::Point2f(808,448), cv::Point2f(808,0), cv::Point2f(0,448), cv::Point2f(0,0) };
-		    cv::Point2f god_view[] 	    = { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100, 708), cv::Point2f(348, 808-150) };
+		    cv::Point2f god_view[4];
+
+            if (WHO_AM_I == "blue") {
+                god_view[0] = cv::Point2f(100, 808-638);
+                god_view[1] = cv::Point2f(348, 100);
+                god_view[2] = cv::Point2f(100, 708);
+                god_view[3] = cv::Point2f(348, 808-150);
+                // god_view[] 	= { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100, 708), cv::Point2f(348, 808-150) };
+            }
+		    if (WHO_AM_I == "red") {
+                god_view[0] = cv::Point2f(100,      808-638);
+                god_view[1] = cv::Point2f(348,      100);
+                god_view[2] = cv::Point2f(100+20,   708);
+                god_view[3] = cv::Point2f(348,      808-150);
+                // god_view[] 	    = { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100+20, 708), cv::Point2f(348, 808-150) };
+            }
+
 		    // 计算变换矩阵
 		    warpmatrix = cv::getPerspectiveTransform(fourPoint, god_view);
 		    std::cout << warpmatrix << std::endl;
@@ -122,7 +175,6 @@ mtx.lock();
             car1Info.carPosition.x *= 100;
             car1Info.carPosition.y *= 100;
         }
-
 
         receive_car2 = false;
         while ( subscriber_car2.recv(&recv_message_car2, ZMQ_DONTWAIT) ) { 
@@ -203,7 +255,7 @@ void start_1() {
     else {
         cap.read(img);
     }
-
+    // img *= 1.5;
     getWarpMatrix(img);                     // 手动点四点透视变换
 
     Monitoring wolfEye(warpmatrix);         // 哨岗类
@@ -223,6 +275,7 @@ void start_1() {
 #endif  // SHOW_RUNTIME
         if (mv_capture_.isindustryimgInput()) {
             img = mv_capture_.image();
+            // img *= 1.5;
         }
         else {
             cap.read(img);
