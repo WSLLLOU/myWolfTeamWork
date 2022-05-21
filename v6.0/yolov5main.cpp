@@ -1,8 +1,14 @@
 #include "yolov5.hpp"
 
+// 副哨岗IP
+#define SENTRY_IP "tcp://192.168.1.154:5556"
+// CAR1 IP
+#define CAR1_IP "tcp://192.168.1.66:5555"
+// CAR2 IP
+#define CAR2_IP "tcp://192.168.1.89:5555"
 // 标4点位置切换
 // 0 点四边玻璃罩子
-// 1 点中间各障碍物坐下点
+// 1 点中间各障碍物左下点
 #define CHECK_4_OPT 0
 // 数据矫正函数模式
 // 0  蓝方主哨岗
@@ -37,6 +43,23 @@
 // POINT_CAR_DISTANCE_THRESHOLD 判断离Car坐标数据最远的那个坐标数据是否超过设定的该距离阈值(70cm), 若超, 则可以判断该数据为敌方坐标
 #define POINT_CAR_DISTANCE_THRESHOLD 70
 
+// 显示虚拟地图
+// 0 关闭
+// 1 开启
+#define MAPINFO_OFF 1
+// 显示相机图片(并且绘制了, 标志数据和)
+// 0 关闭
+// 1 开启
+#define SHOW_IMG 1
+// 显示单帧运行时间
+// 0 关闭
+// 1 开启
+#define SHOW_RUNTIME 1
+// 录制
+// 0 录制关闭
+// 1 录制开启
+#define WRITER 0
+
 #include "Monitoring.hpp"
 #include "Mapinfo.hpp"
 #include "Message.hpp"
@@ -44,15 +67,8 @@
 #include <mutex>
 #include <chrono>
 #include <zmq.hpp>
-
 #include "mv_video_capture.hpp"
 // #include "fps.hpp"
-
-// #define MAPINFO_OFF
-// #define SHOW_IMG
-// #define SHOW_RUNTIME
-
-// #define WRITER 1
 
 struct Send{			// 套接字内容
 
@@ -63,8 +79,8 @@ struct Send{			// 套接字内容
     int pangolin;          // 卧底
 
     // 占着茅坑不拉屎 1 2
-    bool buff_1_;  // a_dog_in_the_toilet_on_shit_1
-    bool buff_2_;  // a_dog_in_the_toilet_on_shit_2
+    bool buff_1_;  // a_dog_in_the_toilet_on_shit_1 (F7)
+    bool buff_2_;  // a_dog_in_the_toilet_on_shit_2 (F1)
 
     cv::Point2f blue1;
     cv::Point2f blue2;
@@ -102,6 +118,7 @@ static void onMouse1(int event, int x, int y, int, void* userInput) {
         else if (times == 5) {
 		    cv::Point2f god_view[4];
 
+#if CHECK_4_OPT == 0
             if (WHO_AM_I == "blue") {
                 god_view[0] = cv::Point2f(100, 808-638);
                 god_view[1] = cv::Point2f(348, 100);
@@ -116,6 +133,13 @@ static void onMouse1(int event, int x, int y, int, void* userInput) {
                 god_view[3] = cv::Point2f(348,      808-150);
                 // god_view[] 	    = { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100+20, 708), cv::Point2f(348, 808-150) };
             }
+#endif
+#if CHECK_4_OPT == 1
+                god_view[0] = cv::Point2f(214,      808-578);
+                god_view[1] = cv::Point2f(93.5,     808-354);
+                god_view[2] = cv::Point2f(334.5,    808-354);
+                god_view[3] = cv::Point2f(214,      808-150);
+#endif
 
 		    // 计算变换矩阵
 		    warpmatrix = cv::getPerspectiveTransform(fourPoint, god_view);
@@ -270,7 +294,7 @@ void start_1() {
 
 
     while (true) {
-#ifndef SHOW_RUNTIME
+#if SHOW_RUNTIME == 1
         auto start = std::chrono::system_clock::now();
 #endif  // SHOW_RUNTIME
         if (mv_capture_.isindustryimgInput()) {
@@ -289,7 +313,7 @@ void start_1() {
 
         wolfEye.run(car, img, result);   // 得出结果 ————> result 
 
-#ifndef MAPINFO_OFF
+#if MAPINFO_OFF == 1
         // mapInfo.showTransformImg(img);                          // ++ 显示透视变换后的图片
         mapInfo.showMapInfo(result);                            // ++ 显示模拟地图
 #endif  // MAPINFO_OFF
@@ -303,7 +327,7 @@ mtx.lock();
         // receive_car2   = false;
 mtx.unlock();
 
-#ifndef MAPINFO_OFF
+#if MAPINFO_OFF == 1
         mapInfo.showMapInfo2(PC_1); // 显示融合后的数据
 #endif  // MAPINFO_OFF
 
@@ -325,13 +349,13 @@ mtx.unlock();
         publisher.send(send_message);
 
         mv_capture_.cameraReleasebuff();   // 释放这一帧的内容
-#ifndef SHOW_RUNTIME
+#if SHOW_RUNTIME == 1
         auto end = std::chrono::system_clock::now();
         auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "整体时间" << diff << "ms" << std::endl << std::endl;
 #endif  // SHOW_RUNTIME
 
-#ifndef SHOW_IMG
+#if SHOW_IMG == 1
     // 在原图上绘制检测结果 start
         // 绘制 矩形(rectangle) 和 类编号(class_id)
         for (size_t j = 0; j < car.size(); j++) {               // car.size() 该图检测到多少个class
@@ -407,19 +431,19 @@ int main(int argc, char **argv) {
     // 初始化 接收 副哨岗
     zmq::context_t receive_context_sentry(1);
     zmq::socket_t subscriber_sentry(receive_context_sentry, ZMQ_SUB);
-    subscriber_sentry.connect("tcp://192.168.1.154:5556");
+    subscriber_sentry.connect(SENTRY_IP);    // "tcp://192.168.1.154:5556"
     subscriber_sentry.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
     // 初始化 接收 car1Info
     zmq::context_t receive_context_car1(1);
     zmq::socket_t subscriber_car1(receive_context_car1, ZMQ_SUB);
-    subscriber_car1.connect("tcp://192.168.1.66:5555");
+    subscriber_car1.connect(CAR1_IP);  // "tcp://192.168.1.66:5555"
     subscriber_car1.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
     // 初始化 接收 car2Info
     zmq::context_t receive_context_car2(1);
     zmq::socket_t subscriber_car2(receive_context_car2, ZMQ_SUB);
-    subscriber_car2.connect("tcp://192.168.1.89:5555");
+    subscriber_car2.connect(CAR2_IP);  // "tcp://192.168.1.89:5555"
     subscriber_car2.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
     std::thread t2 = std::thread(start_2, std::ref(subscriber_sentry), std::ref(subscriber_car1), std::ref(subscriber_car2)); // 接收 副哨岗,car1Info,car2Info 信息
