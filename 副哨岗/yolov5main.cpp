@@ -15,6 +15,15 @@
 // "red"    现在为红方    记得一定要小写,并且内容无误
 #define WHO_AM_I "blue"
 
+// 哨岗相机离地高度 (mm)
+#define WATCH_DOG_H 1730.0
+// 车半身高度 (mm)
+#define CAR_HALF_H 250.0
+// 相机偏移量 X (cm)
+#define OFFSET_X 9
+// 相机偏移量 Y (cm)
+#define OFFSET_Y 12
+
 // 显示虚拟地图
 // 0 关闭
 // 1 开启
