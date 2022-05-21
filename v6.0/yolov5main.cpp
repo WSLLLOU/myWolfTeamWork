@@ -1,10 +1,10 @@
 #include "yolov5.hpp"
 
-// 副哨岗IP
+// 接收 副哨岗IP
 #define SENTRY_IP "tcp://192.168.1.154:5556"
-// CAR1 IP
+// 接收 CAR1 IP
 #define CAR1_IP "tcp://192.168.1.66:5555"
-// CAR2 IP
+// 接收 CAR2 IP
 #define CAR2_IP "tcp://192.168.1.89:5555"
 // 标4点位置切换
 // 0 点四边玻璃罩子
@@ -47,7 +47,7 @@
 // 0 关闭
 // 1 开启
 #define MAPINFO_OFF 1
-// 显示相机图片(并且绘制了, 标志数据和)
+// 显示相机图片(并且绘制了, 标志数据和坐标数据)
 // 0 关闭
 // 1 开启
 #define SHOW_IMG 1
@@ -59,6 +59,9 @@
 // 0 录制关闭
 // 1 录制开启
 #define WRITER 0
+// 录制视频目标路径
+#define WRITER_DIR "../vedio/test.avi"
+// 05_17_drak_exp40000_sencond_3
 
 #include "Monitoring.hpp"
 #include "Mapinfo.hpp"
@@ -254,7 +257,7 @@ void start_1() {
 #if WRITER == 1
     // 录制
     cv::VideoWriter writer;
-    std::string out_path = "../vedio/05_17_drak_exp40000_sencond_3.avi";    // 目标路径
+    std::string out_path = WRITER_DIR;    // 目标路径
     cv::Size size(1280, 1024);                              // 重要! 要求与摄像头参数一致
     // int fourcc = writer.fourcc('X', 'V', 'I', 'D');      // 设置avi文件对应的编码格式 66 67
     int fourcc = writer.fourcc('M', 'J', 'P', 'G');     // 33 30 48Flv1
