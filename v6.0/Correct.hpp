@@ -57,11 +57,11 @@ void correct_function_2(cv::Point2f& carPosition, cv::Point2f& carPositionFixed,
     }
 
     // 坐标误差矫正
-    static float watchDog   = 1789.0;   // 1768 -- 20cm*20cm*20cm -- 5kg
-    static float carHeight  = 250.0;
+    static float watchDog   = WATCH_DOG_H;   // 1768 -- 20cm*20cm*20cm -- 5kg
+    static float carHeight  = CAR_HALF_H;
     static float nicetry    = carHeight / watchDog;
-    static float offset_x   = 9;
-    static float offset_y   = 12;
+    static float offset_x   = OFFSET_X;
+    static float offset_y   = OFFSET_Y;
     carPositionFixed.x = (carPosition.x + offset_x) * (1.0 - nicetry);
     carPositionFixed.y = (carPosition.y + offset_y) * (1.0 - nicetry);
 
