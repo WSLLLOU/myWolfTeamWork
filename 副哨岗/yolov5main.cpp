@@ -32,10 +32,6 @@
 // 0 关闭
 // 1 开启
 #define SHOW_IMG 1
-// 显示单帧运行时间
-// 0 关闭
-// 1 开启
-#define SHOW_RUNTIME 1
 // 录制
 // 0 录制关闭
 // 1 录制开启
@@ -177,9 +173,8 @@ int main() {
 
 
     while (true) {
-#if SHOW_RUNTIME == 1
         auto start = std::chrono::system_clock::now();
-#endif  // SHOW_RUNTIME
+
         if (mv_capture_.isindustryimgInput()) {
             img = mv_capture_.image();
         }
@@ -227,11 +222,10 @@ int main() {
         publisher.send(send_message);
 
         mv_capture_.cameraReleasebuff();   // 释放这一帧的内容
-#if SHOW_RUNTIME == 1
+
         auto end = std::chrono::system_clock::now();
         auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "整体时间" << diff << "ms" << std::endl << std::endl;
-#endif  // SHOW_RUNTIME
 
 #if SHOW_IMG == 1
     // 在原图上绘制检测结果 start

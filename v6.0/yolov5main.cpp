@@ -5,17 +5,23 @@
 // 接收 CAR1 IP
 #define CAR1_IP "tcp://192.168.1.66:5555"
 // 接收 CAR2 IP
-#define CAR2_IP "tcp://192.168.1.89:5555"
+#define CAR2_IP "tcp://192.168.1.88:5555"
+
 // 标4点位置切换
 // 0 点四边玻璃罩子
 // 1 点中间各障碍物左下点
 #define CHECK_4_OPT 0
 // 数据矫正函数模式
-// 0  蓝方主哨岗
-// 1  蓝方副哨岗
-// 2  红方主哨岗
-// 3  红方副哨岗
-#define MOTHED 0
+// 0  蓝方[主哨岗]
+// 1  蓝方[副哨岗]
+// 2  红方[主哨岗]
+// 3  红方[副哨岗]
+#define MOTHED 2
+// 当前身份 蓝/红
+// "blue"   现在为蓝方    记得一定要小写,并且内容无误
+// "red"    现在为红方    记得一定要小写,并且内容无误
+#define WHO_AM_I "red"
+
 // 哨岗相机离地高度 (mm)
 #define WATCH_DOG_H 1730.0
 // 车半身高度 (mm)
@@ -25,10 +31,6 @@
 // 相机偏移量 Y (cm)
 #define OFFSET_Y 12 
 
-// 当前身份 蓝/红
-// "blue"   现在为蓝方    记得一定要小写,并且内容无误
-// "red"    现在为红方    记得一定要小写,并且内容无误
-#define WHO_AM_I "blue"
 // 同色同号判断严格程度
 // "strict"     [严格]需要场上四台车都在, 但条件还是很严格(主哨岗连续检测+条件严格), 主哨岗检测不完全就不行;
 // "relaxed"    [宽松]不限场上多少台车, 主哨岗能连续检测到一对同色同号即可, 但主哨岗检测不到还是不行;
@@ -37,15 +39,11 @@
 // 显示虚拟地图
 // 0 关闭
 // 1 开启
-#define MAPINFO_OFF 1
-// 显示相机图片(并且绘制了, 标志数据和坐标数据)
+#define MAPINFO_OFF 0
+// 显示相机图片(并显示 |帧数|标志数据|坐标数据| )
 // 0 关闭
 // 1 开启
 #define SHOW_IMG 1
-// 显示单帧运行时间
-// 0 关闭
-// 1 开启
-#define SHOW_RUNTIME 1
 // 录制
 // 0 录制关闭
 // 1 录制开启
@@ -306,9 +304,8 @@ void start_1() {
 
 
     while (true) {
-#if SHOW_RUNTIME == 1
         auto start = std::chrono::system_clock::now();
-#endif  // SHOW_RUNTIME
+
         if (mv_capture_.isindustryimgInput()) {
             img = mv_capture_.image();
             // img *= 1.5;
@@ -361,11 +358,10 @@ mtx.unlock();
         publisher.send(send_message);
 
         mv_capture_.cameraReleasebuff();   // 释放这一帧的内容
-#if SHOW_RUNTIME == 1
+
         auto end = std::chrono::system_clock::now();
         auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "整体时间" << diff << "ms" << std::endl << std::endl;
-#endif  // SHOW_RUNTIME
 
 #if SHOW_IMG == 1
     // 在原图上绘制检测结果 start
