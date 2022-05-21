@@ -55,7 +55,7 @@ class Message {
     private:
         CarInfoSend     PC_2;
 
-        const std::string whoAmI    = "blue"; // blue or red 现在是蓝方还是红方
+        const std::string whoAmI    = WHO_AM_I; // blue or red 现在是蓝方还是红方
         // // // 检测同色同号主要靠主哨岗检测，检测同色同号条件为 [严格] or [宽松]
         // // //      [严格]需要场上四台车都在, 但条件还是很严格(主哨岗连续检测+条件严格), 主哨岗检测不完全就不行;
         // // //      [宽松]不限场上多少台车, 主哨岗能连续检测到一对同色同号即可, 但主哨岗检测不到还是不行;

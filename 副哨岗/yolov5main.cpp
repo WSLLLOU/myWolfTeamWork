@@ -1,17 +1,47 @@
 #include "yolov5.hpp"
+
+// 标4点位置切换
+// 0 点四边玻璃罩子
+// 1 点中间各障碍物左下点
+#define CHECK_4_OPT 0
+// 数据矫正函数模式
+// 0  蓝方主哨岗
+// 1  蓝方副哨岗
+// 2  红方主哨岗
+// 3  红方副哨岗
+#define MOTHED 0
+// 当前身份 蓝/红
+// "blue"   现在为蓝方    记得一定要小写,并且内容无误
+// "red"    现在为红方    记得一定要小写,并且内容无误
+#define WHO_AM_I "blue"
+
+// 显示虚拟地图
+// 0 关闭
+// 1 开启
+#define SHOW_MAPINFO 1
+// 显示相机图片(并且绘制了, 标志数据和坐标数据)
+// 0 关闭
+// 1 开启
+#define SHOW_IMG 1
+// 显示单帧运行时间
+// 0 关闭
+// 1 开启
+#define SHOW_RUNTIME 1
+// 录制
+// 0 录制关闭
+// 1 录制开启
+#define WRITER 0
+// 录制视频目标路径
+#define WRITER_DIR "../vedio/test.avi"
+
 #include "Monitoring.hpp"
 #include "Mapinfo.hpp"
 #include "Message.hpp"
 #include <mutex>
 #include <chrono>
 #include <zmq.hpp>
-
 #include "mv_video_capture.hpp"
 // #include "fps.hpp"
-
-// #define MAPINFO_OFF
-// #define SHOW_IMG
-// #define SHOW_RUNTIME
 
 // 旋转矩阵
 cv::Mat warpmatrix(3, 3, CV_64FC1);
@@ -30,8 +60,31 @@ static void onMouse1(int event, int x, int y, int, void* userInput) {
             fourPoint[times-1].y = y;
         }
         else if (times == 5) {
-		    // cv::Point2f god_view[] 	  = { cv::Point2f(808,448), cv::Point2f(808,0), cv::Point2f(0,448), cv::Point2f(0,0) };
-		    cv::Point2f god_view[] 	    = { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100, 708), cv::Point2f(348, 808-150) };
+		    cv::Point2f god_view[4];
+
+#if CHECK_4_OPT == 0
+            if (WHO_AM_I == "blue") {
+                god_view[0] = cv::Point2f(100, 808-638);
+                god_view[1] = cv::Point2f(348, 100);
+                god_view[2] = cv::Point2f(100, 708);
+                god_view[3] = cv::Point2f(348, 808-150);
+                // god_view[] 	= { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100, 708), cv::Point2f(348, 808-150) };
+            }
+		    if (WHO_AM_I == "red") {
+                god_view[0] = cv::Point2f(100,      808-638);
+                god_view[1] = cv::Point2f(348,      100);
+                god_view[2] = cv::Point2f(100+20,   708);
+                god_view[3] = cv::Point2f(348,      808-150);
+                // god_view[] 	    = { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100+20, 708), cv::Point2f(348, 808-150) };
+            }
+#endif
+#if CHECK_4_OPT == 1
+                god_view[0] = cv::Point2f(214,      808-578);
+                god_view[1] = cv::Point2f(93.5,     808-354);
+                god_view[2] = cv::Point2f(334.5,    808-354);
+                god_view[3] = cv::Point2f(214,      808-150);
+#endif
+
 		    // 计算变换矩阵
 		    warpmatrix = cv::getPerspectiveTransform(fourPoint, god_view);
 		    std::cout << warpmatrix << std::endl;
@@ -72,6 +125,23 @@ int main() {
                                                                         );
     // fps::FPS       global_fps_;
 
+#if WRITER == 1
+    // 录制
+    cv::VideoWriter writer;
+    std::string out_path = WRITER_DIR;    // 目标路径
+    cv::Size size(1280, 1024);                              // 重要! 要求与摄像头参数一致
+    // int fourcc = writer.fourcc('X', 'V', 'I', 'D');      // 设置avi文件对应的编码格式 66 67
+    int fourcc = writer.fourcc('M', 'J', 'P', 'G');     // 33 30 48Flv1
+    // int fourcc = writer.fourcc('F', 'L', 'V', '1');      // 33 30 48Flv1
+    writer.open(out_path, fourcc, 30, size, true);      // CAP_DSHOW = true
+    if (writer.isOpened()) {
+        std::cout << "正在录制" << std::endl;
+    }
+    else {
+        std::cout << "录制失败" << std::endl;
+    }
+#endif  // WRITER_OFF
+
     // 检测是否有免驱相机
     if (!cap.isOpened()) {
         std::cout << "Error opening video stream or file" << std::endl;
@@ -98,7 +168,7 @@ int main() {
 
 
     while (true) {
-#ifndef SHOW_RUNTIME
+#if SHOW_RUNTIME == 1
         auto start = std::chrono::system_clock::now();
 #endif  // SHOW_RUNTIME
         if (mv_capture_.isindustryimgInput()) {
@@ -108,21 +178,25 @@ int main() {
             cap.read(img);
         }
 
+#if WRITER == 1
+        writer << img;
+#endif  // WRITER_OFF
+
         auto car = wsl(img);                    // 检测 车车
 
         wolfEye.run(car, img, result);   // 得出结果 ————> result 
 
-#ifndef MAPINFO_OFF
+#if SHOW_MAPINFO == 1
         // mapInfo.showTransformImg(img);                          // ++ 显示透视变换后的图片
         mapInfo.showMapInfo(result);                            // ++ 显示模拟地图
-#endif  // MAPINFO_OFF
+#endif  // SHOW_MAPINFO
 
         // 获取需要发送的消息内容 // receive: 接收到数据,则融合 || 未接收到,则跳过
         PC_2 = chong(result);
 
-#ifndef MAPINFO_OFF
-        mapInfo.showMapInfo2(PC_2); // 显示融合后的数据
-#endif  // MAPINFO_OFF
+// #if SHOW_MAPINFO == 1
+//         mapInfo.showMapInfo2(PC_2); // 显示融合后的数据
+// #endif  // SHOW_MAPINFO
 
         std::cout << "发送的内容是" << std::endl;
         // std::cout << "swapColorModes:" << PC_2.swapColorModes  << std::endl;
@@ -144,13 +218,13 @@ int main() {
         publisher.send(send_message);
 
         mv_capture_.cameraReleasebuff();   // 释放这一帧的内容
-#ifndef SHOW_RUNTIME
+#if SHOW_RUNTIME == 1
         auto end = std::chrono::system_clock::now();
         auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "整体时间" << diff << "ms" << std::endl << std::endl;
 #endif  // SHOW_RUNTIME
 
-#ifndef SHOW_IMG
+#if SHOW_IMG == 1
     // 在原图上绘制检测结果 start
         // 绘制 矩形(rectangle) 和 类编号(class_id)
         for (size_t j = 0; j < car.size(); j++) {               // car.size() 该图检测到多少个class
@@ -162,20 +236,23 @@ int main() {
                 cv::putText(img, std::to_string((int)car[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
             // }
         }
-        cv::putText(img, "buff_1_        : " + std::to_string(PC_2.a_dog_in_the_toilet_on_shit_1),         cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "buff_2_        : " + std::to_string(PC_2.a_dog_in_the_toilet_on_shit_2),         cv::Point(50, 200), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-        cv::putText(img, "FPS            : " + std::to_string(1000.0/diff),                                cv::Point(50, 250), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-/*
-        // 在原图上画装甲板opt4
-        const cv::Scalar colors[3] = {{255, 0, 0}, {0, 0, 255}, {0, 255, 0}};
-        for (const auto &b : armor) {
-            cv::line(img, b.pts[0], b.pts[1], colors[2], 2);
-            cv::line(img, b.pts[1], b.pts[2], colors[2], 2);
-            cv::line(img, b.pts[2], b.pts[3], colors[2], 2);
-            cv::line(img, b.pts[3], b.pts[0], colors[2], 2);
-            cv::putText(img, std::to_string(b.tag_id), b.pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, colors[b.color_id]);
-        }
-*/
+        cv::putText(img, "buff_1_        : " + std::to_string(PC_2.a_dog_in_the_toilet_on_shit_1),         cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "buff_2_        : " + std::to_string(PC_2.a_dog_in_the_toilet_on_shit_2),         cv::Point(50, 200), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "FPS            : " + std::to_string(1000.0/diff),                                cv::Point(50, 250), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+
+        cv::putText(img, "blue1          :", cv::Point(50, 550), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_2.blue1.x)),         cv::Point(350, 550), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_2.blue1.y)),         cv::Point(450, 550), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "blue2:         :", cv::Point(50, 600), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_2.blue2.x)),         cv::Point(350, 600), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_2.blue2.y)),         cv::Point(450, 600), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "red1           :", cv::Point(50, 650), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_2.red1.x)),          cv::Point(350, 650), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_2.red1.y)),          cv::Point(450, 650), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, "red2           :", cv::Point(50, 700), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_2.red2.x)),          cv::Point(350, 700), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(img, std::to_string(int(PC_2.red2.y)),          cv::Point(450, 700), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+
     // 在原图上绘制检测结果 end
         cv::imshow("yolov5", img);
         static char _key;
@@ -186,6 +263,11 @@ int main() {
 #endif // SHOW_IMG
 
     }
+
+#if WRITER == 1
+    writer.release();
+#endif  // WRITER_OFF
+
     cap.release();
 
     return 0;
