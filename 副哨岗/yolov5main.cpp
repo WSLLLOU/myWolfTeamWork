@@ -35,9 +35,9 @@
 // 录制
 // 0 录制关闭
 // 1 录制开启
-#define WRITER 0
+#define WRITER 1
 // 录制视频目标路径
-#define WRITER_DIR "../vedio/test.avi"
+#define WRITER_DIR "../vedio/"
 
 #include "Monitoring.hpp"
 #include "Mapinfo.hpp"
@@ -45,6 +45,8 @@
 #include <mutex>
 #include <chrono>
 #include <zmq.hpp>
+#include <time.h>
+#include <sstream>
 #include "mv_video_capture.hpp"
 // #include "fps.hpp"
 
@@ -131,9 +133,13 @@ int main() {
     // fps::FPS       global_fps_;
 
 #if WRITER == 1
+    time_t vedio_name = time(NULL);
+    tm* tm_t = localtime(&vedio_name);
+    std::stringstream vns;
+    vns << std::to_string(tm_t->tm_hour) << "_" << std::to_string(tm_t->tm_min) << "_" << std::to_string(tm_t->tm_sec);
     // 录制
     cv::VideoWriter writer;
-    std::string out_path = WRITER_DIR;    // 目标路径
+    std::string out_path = WRITER_DIR + vns.str() +".avi";    // 目标路径
     cv::Size size(1280, 1024);                              // 重要! 要求与摄像头参数一致
     // int fourcc = writer.fourcc('X', 'V', 'I', 'D');      // 设置avi文件对应的编码格式 66 67
     int fourcc = writer.fourcc('M', 'J', 'P', 'G');     // 33 30 48Flv1

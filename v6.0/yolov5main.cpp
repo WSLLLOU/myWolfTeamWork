@@ -1,16 +1,19 @@
 #include "yolov5.hpp"
 
-// 接收 副哨岗IP
-#define SENTRY_IP "tcp://192.168.1.154:5556"
-// 接收 CAR1 IP
-#define CAR1_IP "tcp://192.168.1.66:5555"
-// 接收 CAR2 IP
-#define CAR2_IP "tcp://192.168.1.88:5555"
-
 // 标4点位置切换
 // 0 点四边玻璃罩子
 // 1 点中间各障碍物左下点
 #define CHECK_4_OPT 0
+
+// 哨岗相机离地高度 (mm)
+#define WATCH_DOG_H 1720.0
+// 车半身高度 (mm)
+#define CAR_HALF_H 250.0
+// 相机偏移量 X (cm)
+#define OFFSET_X 15
+// 相机偏移量 Y (cm)
+#define OFFSET_Y 16
+
 // 数据矫正函数模式
 // 0  蓝方[主哨岗]
 // 1  蓝方[副哨岗]
@@ -22,35 +25,34 @@
 // "red"    现在为红方    记得一定要小写,并且内容无误
 #define WHO_AM_I "red"
 
-// 哨岗相机离地高度 (mm)
-#define WATCH_DOG_H 1730.0
-// 车半身高度 (mm)
-#define CAR_HALF_H 250.0
-// 相机偏移量 X (cm)
-#define OFFSET_X 9 
-// 相机偏移量 Y (cm)
-#define OFFSET_Y 12 
-
 // 同色同号判断严格程度
 // "strict"     [严格]需要场上四台车都在, 但条件还是很严格(主哨岗连续检测+条件严格), 主哨岗检测不完全就不行;
 // "relaxed"    [宽松]不限场上多少台车, 主哨岗能连续检测到一对同色同号即可, 但主哨岗检测不到还是不行;
 #define SWAP_COLOR_CONDITION "relaxed"
 
+// 录制
+// 0 录制关闭
+// 1 录制开启
+#define WRITER 1
+// 录制视频目标路径
+#define WRITER_DIR "../vedio/"
+// 05_17_drak_exp40000_sencond_3
+
+// 接收 副哨岗IP
+#define SENTRY_IP "tcp://192.168.1.154:5556"
+// 接收 CAR1 IP
+#define CAR1_IP "tcp://192.168.1.66:5555"
+// 接收 CAR2 IP
+#define CAR2_IP "tcp://192.168.1.88:5555"
+
 // 显示虚拟地图
 // 0 关闭
 // 1 开启
-#define MAPINFO_OFF 0
+#define MAPINFO_OFF 1
 // 显示相机图片(并显示 |帧数|标志数据|坐标数据| )
 // 0 关闭
 // 1 开启
 #define SHOW_IMG 1
-// 录制
-// 0 录制关闭
-// 1 录制开启
-#define WRITER 0
-// 录制视频目标路径
-#define WRITER_DIR "../vedio/test.avi"
-// 05_17_drak_exp40000_sencond_3
 
 // 数据融合函数距离阈值
 // distanceCar  主副哨岗数据融合, 得出相同身份的两点, 相距大于该数值(60cm), 则认为不是同一台车
@@ -78,6 +80,8 @@
 #include <chrono>
 #include <zmq.hpp>
 #include "mv_video_capture.hpp"
+#include <time.h>
+#include <sstream>
 // #include "fps.hpp"
 
 struct Send{			// 套接字内容
@@ -262,9 +266,13 @@ void start_1() {
     // fps::FPS       global_fps_;
 
 #if WRITER == 1
+    time_t vedio_name = time(NULL);
+    tm* tm_t = localtime(&vedio_name);
+    std::stringstream vns;
+    vns << std::to_string(tm_t->tm_hour) << "_" << std::to_string(tm_t->tm_min) << "_" << std::to_string(tm_t->tm_sec);
     // 录制
     cv::VideoWriter writer;
-    std::string out_path = WRITER_DIR;    // 目标路径
+    std::string out_path = WRITER_DIR + vns.str() +".avi";    // 目标路径
     cv::Size size(1280, 1024);                              // 重要! 要求与摄像头参数一致
     // int fourcc = writer.fourcc('X', 'V', 'I', 'D');      // 设置avi文件对应的编码格式 66 67
     int fourcc = writer.fourcc('M', 'J', 'P', 'G');     // 33 30 48Flv1
