@@ -512,6 +512,15 @@ CarInfoSend Message::operator()(std::vector<car>& result, CarInfoSend& PC_2, boo
 
         // 选两个哨岗检测出的死车max数
         PC_1.gray_num = std::max(PC_1.gray_num, PC_2.gray_num);
+
+        // (F7_buff 区的灰车检测)
+        if (PC_2.a_dog_in_the_toilet_on_shit_1) {
+            PC_1.a_dog_in_the_toilet_on_shit_1 = true;
+        }
+        // (F1_buff 区的灰车检测)
+        if (PC_2.a_dog_in_the_toilet_on_shit_2) {
+            PC_1.a_dog_in_the_toilet_on_shit_2 = true;
+        }
     }
 
     // receive_sentry 表示是否接收到 哨岗消息    接收到true 未接收到false
