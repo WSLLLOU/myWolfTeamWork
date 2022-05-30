@@ -6,19 +6,19 @@
 #define CHECK_4_OPT 0
 
 // 哨岗相机离地高度 (mm)
-#define WATCH_DOG_H 1720.0
+#define WATCH_DOG_H 1818.0
 // 车半身高度 (mm)
 #define CAR_HALF_H 250.0
 // 相机偏移量 X (cm)
 #define OFFSET_X 15
 // 相机偏移量 Y (cm)
-#define OFFSET_Y 16
+#define OFFSET_Y 15
 
 // 数据矫正函数模式
-// 0  蓝方[主哨岗]
-// 1  蓝方[副哨岗]
-// 2  红方[主哨岗]
-// 3  红方[副哨岗]
+// 0  蓝方[主哨岗] (D1)
+// 1  蓝方[副哨岗] (D3)
+// 2  红方[主哨岗] (D2)
+// 3  红方[副哨岗] (D4)
 #define MOTHED 2
 // 当前身份 蓝/红
 // "blue"   现在为蓝方    记得一定要小写,并且内容无误
@@ -246,8 +246,11 @@ mtx.unlock();
 
 
 void start_1() {
-    std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx/yolov5/imgsz1280_1280_65_b.engine";
-    std::string img_dir     = "/home/wsl/wolf_workspace/yoloCustomData/5000曝光2.avi";
+    // std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx/yolov5/imgsz1280_1280_65_b.engine";
+    // std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx/yolov5/75last.engine";
+    std::string engine_name = "/home/wsl/wolf_workspace/tensorrtx/yolov5/77_last.engine";
+    // std::string img_dir     = "/home/wsl/myWolfTeamWork/v6.0/vedio/18_54_52.avi";
+    std::string img_dir     = "/home/wsl/桌面/lwr_vedio/24_one.avi";
 
     cv::VideoCapture    cap(img_dir);  // cap捕捉图片流
     // cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
@@ -316,7 +319,6 @@ void start_1() {
 
         if (mv_capture_.isindustryimgInput()) {
             img = mv_capture_.image();
-            // img *= 1.5;
         }
         else {
             cap.read(img);
