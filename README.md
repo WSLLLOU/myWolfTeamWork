@@ -6,7 +6,7 @@
 [2020 西北工业](https://github.com/nwpu-v5-team/ICRA-RoboMaster-2020-Perception)  
 [2020 吉大](https://github.com/Junking1/ICRA2020-JLU-TARS_GO-Perception)  
 [2022 哈工大深圳](https://github.com/Critical-HIT-hitsz/RMUA2022)  
-[2022 武技大(貌似)]()
+[2022 武技大(貌似)](https://github.com/chinaheyu/whistle)
 
 ## 碎碎念
 dev分支中, 开发或重构现有的代码, 测试完毕之后再merge回main分支, 使得main分支的代码不会在再次开发的过程中不断填充新的bug而变得更加臃肿和不稳定。  
