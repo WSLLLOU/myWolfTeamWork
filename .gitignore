@@ -1,0 +1,8 @@
+.vscode/
+
+build/
+vedio/
+
+*.mvdat
+
+*.config
