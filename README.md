@@ -1,7 +1,14 @@
 # 广州城市理工学院(华广)-ROBOMASTER人工智能挑战赛-哨岗代码-待完善版本
 
-# 以下为DEV版本中的碎碎念
-# DEV
+## 这里为往届哨岗开源的github链接，用于参考文档的编辑
+[2020 中科院](https://github.com/DRL-CASIA/RMAI2020-Perception)  
+[2020 哈工大](https://github.com/MengXiangBo/ICRA2020_RM_IHiter_Perception)  
+[2020 西北工业](https://github.com/nwpu-v5-team/ICRA-RoboMaster-2020-Perception)  
+[2020 吉大](https://github.com/Junking1/ICRA2020-JLU-TARS_GO-Perception)  
+[2022 哈工大深圳](https://github.com/Critical-HIT-hitsz/RMUA2022)  
+[2022 武技大(貌似)]()
+
+## 碎碎念
 dev分支中, 开发或重构现有的代码, 测试完毕之后再merge回main分支, 使得main分支的代码不会在再次开发的过程中不断填充新的bug而变得更加臃肿和不稳定。  
 现在主要的目的是重构暴露在外的各种hpp, 他们没有cpp, 所有的实现都写在了hpp内部, 这很不优雅.  
 Message.hpp内部的逻辑判断为比赛前一个月匆忙编写的, 因此充满了各种暴力的实现, 极其繁多的 `if-else` , 不明所以的判断条件. 这一切都表明着开发人员在那一个月的脑内物质和这堆代码能享有一个共同的 `美誉` ---- `屎山`  
