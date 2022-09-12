@@ -1,8 +1,19 @@
 .vscode/
 
+# 
 build/
+
+# 录像
 vedio/
 
 *.mvdat
 
 *.config
+
+# 权重文件
+*.pt
+*.wts
+
+# 暂时不提交
+learn/
+test/
