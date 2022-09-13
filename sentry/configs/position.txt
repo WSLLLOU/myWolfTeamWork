@@ -1,0 +1,24 @@
+
+数据矫正函数模式
+0  蓝方[主哨岗] D1
+1  蓝方[副哨岗] D3
+2  红方[主哨岗] D4
+3  红方[副哨岗] D2
+fix_position_method_
+
+
+哨岗相机离地高度 (mm)
+1730.0
+WATCH_DOG_H 
+
+车半身高度 (mm)
+250.0
+CAR_HALF_H
+
+相机偏移量 X (cm)
+9
+OFFSET_X 
+
+相机偏移量 Y (cm)
+12
+OFFSET_Y 
