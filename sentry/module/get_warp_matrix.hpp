@@ -10,8 +10,8 @@
 // // 1 点中间各障碍物左下点
 // #define CHECK_4_OPT 0
 // // 当前身份 蓝/红
-// // "blue"   现在为蓝方    记得一定要小写,并且内容无误
-// // "red"    现在为红方    记得一定要小写,并且内容无误
+// // "blue"   现在为蓝方
+// // "red"    现在为红方
 // #define WHO_AM_I "red"
 
 struct GetWarpMatrixInfo
