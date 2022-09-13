@@ -13,6 +13,7 @@ vedio/
 # 权重文件
 *.pt
 *.wts
+*.engine
 
 # 暂时不提交
 learn/
