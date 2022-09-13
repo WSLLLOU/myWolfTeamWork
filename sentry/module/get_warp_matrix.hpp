@@ -1,3 +1,6 @@
+#ifndef SENTRY_MODULE_GET_WARP_MATRIX_HPP_
+#define SENTRY_MODULE_GET_WARP_MATRIX_HPP_
+
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -117,6 +120,9 @@ class GetWarpMatrix {
             return getMatrix();
         }
 };
+
+#endif  // SENTRY_MODULE_GET_WARP_MATRIX_HPP_
+
 
 // [0.8692728977430668, 2.614036593353056, -812.4954883898815;
 //  -0.7891317045354738, 4.572244096696173, 338.5540557661475;
