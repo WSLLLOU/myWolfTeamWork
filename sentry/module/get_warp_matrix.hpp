@@ -110,7 +110,7 @@ class GetWarpMatrix {
         }
 
         // 获取透视变换矩阵
-        cv::Mat getWarpMatrix(cv::Mat& img) {
+        cv::Mat get_warp_matrix(cv::Mat& img) {
             GetWarpMatrixInfo* user_info = new GetWarpMatrixInfo(this->click_point_method_, this->temp_color_, this->warp_matrix_);
             
             while(true) {
