@@ -55,22 +55,28 @@ class GetWarpMatrix {
 
     public:
         // 回调函数点击事件
-        static void onMouse(int event, int x, int y, int, void* userInfo) {
-            GetWarpMatrixInfo *info = (GetWarpMatrixInfo*)userInfo;
+        static void onMouse(int event, int x, int y, int, void* user_info) {
+            GetWarpMatrixInfo *info = (GetWarpMatrixInfo*)user_info;
 
-            static int          times   = 0;
+            static int          click_times   = 0;
             static cv::Point2f  four_point[4];
             if (event != cv::EVENT_LBUTTONDOWN) {
+                if (event == cv::EVENT_RBUTTONDOWN) {
+                    std::cout << "取消第" << click_times << "个点" << std::endl;
+                    click_times--;
+                    click_times = click_times > 0 ? click_times : 0;
+                }
                 return;
             }
             else {
-                times++;
-                if (times <= 4) {
-                    std::cout << x << "  " << y << std::endl;
-                    four_point[times-1].x = x;
-                    four_point[times-1].y = y;
+                click_times++;
+                if (click_times <= 4) {
+                    std::cout << "第" << click_times << "个点为 ";
+                    std::cout << x << "\t" << y << std::endl;
+                    four_point[click_times-1].x = x;
+                    four_point[click_times-1].y = y;
                 }
-                else if (times == 5) {
+                else if (click_times == 5) {
                     cv::Point2f god_view[4];
 
                     if (info->click_point_method_ == 0) {
@@ -85,7 +91,7 @@ class GetWarpMatrix {
                             god_view[0] = cv::Point2f(100,      808-638);
                             god_view[1] = cv::Point2f(348,      100);
                             god_view[2] = cv::Point2f(100+20,   708);
-                            god_view[3] = cv::Point2f(348,      808-150);
+                            god_view[3] = cv::Point2f(348,     808-150);
                             // god_view[] 	    = { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100+20, 708), cv::Point2f(348, 808-150) };
                         }
                     }
@@ -105,17 +111,17 @@ class GetWarpMatrix {
 
         // 获取透视变换矩阵
         cv::Mat getWarpMatrix(cv::Mat& img) {
-            GetWarpMatrixInfo* userInfo = new GetWarpMatrixInfo(this->click_point_method_, this->temp_color_, this->warp_matrix_);
+            GetWarpMatrixInfo* user_info = new GetWarpMatrixInfo(this->click_point_method_, this->temp_color_, this->warp_matrix_);
             
             while(true) {
                 cv::imshow("click_point", img);
-                cv::setMouseCallback("click_point", onMouse, userInfo); // 调用回调函数
+                cv::setMouseCallback("click_point", onMouse, user_info); // 调用回调函数
                 if (cv::waitKey(1) == 'q') {
                     cv::destroyWindow("click_point");
                     break;
                 }
             }
-            this->warp_matrix_ = userInfo->warp_matrix_;
+            this->warp_matrix_ = user_info->warp_matrix_;
             
             return getMatrix();
         }
