@@ -13,13 +13,15 @@
 #include "yolov5.hpp"
 
 // 配置参数
-typedef struct {
+struct FixPositionConfig{
     int   fix_position_method;
     float watchtower_high;
     float car_half_high;
     float offset_x;
     float offset_y;
-} FixPositionConfig;
+
+    FixPositionConfig(int fpm_, float wh_, float chh_, float ox_, float oy_) : fix_position_method(fpm_), watchtower_high(wh_), car_half_high(chh_), offset_x(ox_), offset_y(oy_) {}
+} ;
 
 typedef struct {
     cv::Rect    img_rect;           // `图像`上的车车下半身矩形框 --> 用于寻找装甲板存在的ROI
