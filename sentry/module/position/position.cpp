@@ -46,13 +46,13 @@ void Position::yoloDetection2CarsInfo(std::vector<Yolo::Detection> &predicts) {
             this->cars_info_.push_back(temp_car);
         }
         else {
-            // img_center
+            // img_armor_center
             img_armor_center = getCenterPoint(get_rect(this->tool_img_, predict.bbox));
             temp_armor.img_armor_center = img_armor_center;
 
             // color && armor_num
-            // color // 0蓝 1红 2黑
-            // armor // 1 / 2
+            // color    // 0蓝 1红 2黑
+            // num      // 1 / 2
             if (predict.class_id == 1) {        // armor_1_blue
                 temp_armor.color    = 0;
                 temp_armor.num      = 1;
