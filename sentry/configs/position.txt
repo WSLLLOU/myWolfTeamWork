@@ -9,16 +9,16 @@ fix_position_method_
 
 哨岗相机离地高度 (mm)
 1730.0
-WATCH_DOG_H 
+watchtower_high_ 
 
 车半身高度 (mm)
 250.0
-CAR_HALF_H
+half_car_high_
 
 相机偏移量 X (cm)
 9
-OFFSET_X 
+offset_x_ 
 
 相机偏移量 Y (cm)
 12
-OFFSET_Y 
+offset_y_ 
