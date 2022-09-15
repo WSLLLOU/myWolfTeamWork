@@ -14,7 +14,7 @@ watchtoer_identity_
 // #define MAPINFO_OFF 1
 show_map_info_
 
-显示相机图片(并显示 |帧数|标志数据|坐标数据| )
+显示相机图片 (并显示 |帧数|标志数据|坐标数据| )
 0  关闭
 1  开启
 // #define SHOW_IMG 1
@@ -31,4 +31,3 @@ string 路径
 // #define WRITER_DIR "../vedio/test.avi"
 writer_img_dir_
 # 05_17_drak_exp40000_sencond_3
-
