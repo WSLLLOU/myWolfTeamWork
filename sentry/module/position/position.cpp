@@ -1,14 +1,33 @@
 #include "position.hpp"
 
-Position::Position(int fix_position_method, cv::Mat warp_matrix, cv::Mat src_img) {
-    this->fix_position_method_  = fix_position_method;
-    this->warp_matrix_          = warp_matrix;
-    this->tool_img_             = src_img;
+
+// 透视变换点
+cv::Point2f Position::getWarpPosition(const cv::Point2f &ptOrigin) {
+	cv::Mat_<double> matPt(3, 1);
+	matPt(0, 0) = ptOrigin.x;
+	matPt(1, 0) = ptOrigin.y;
+	matPt(2, 0) = 1;
+	cv::Mat matPtView = this->warp_matrix_ * matPt;
+	double x = matPtView.at<double>(0, 0);
+	double y = matPtView.at<double>(1, 0);
+	double z = matPtView.at<double>(2, 0);
+    
+	return cv::Point2f(x * 1.0 / z, y * 1.0 / z);
 }
 
-Position::~Position() {
-    this->cars_info_.clear();
-    this->armors_info_.clear();
+// 求旋转矩形四点中心
+cv::Point2f Position::getCenterPoint(const cv::Point2f pts[]) {
+    static cv::Point2f center;
+    center.x = (pts[0].x + pts[1].x + pts[2].x + pts[3].x) / 4.0;
+    center.y = (pts[0].y + pts[1].y + pts[2].y + pts[3].y) / 4.0;
+    return center;
+}
+// 求矩形中心点
+cv::Point2f Position::getCenterPoint(const cv::Rect &rect) {
+    static cv::Point2f center;
+    center.x = rect.x + cvRound(rect.width  / 2.0);
+    center.y = rect.y + cvRound(rect.height / 2.0);
+    return center;
 }
 
 // 
@@ -92,80 +111,63 @@ void Position::yoloDetection2CarsInfo(std::vector<Yolo::Detection> &predicts) {
     }
 }
 
-// 透视变换点
-cv::Point2f Position::getWarpPosition(const cv::Point2f &ptOrigin) {
-	cv::Mat_<double> matPt(3, 1);
-	matPt(0, 0) = ptOrigin.x;
-	matPt(1, 0) = ptOrigin.y;
-	matPt(2, 0) = 1;
-	cv::Mat matPtView = this->warp_matrix_ * matPt;
-	double x = matPtView.at<double>(0, 0);
-	double y = matPtView.at<double>(1, 0);
-	double z = matPtView.at<double>(2, 0);
-    
-	return cv::Point2f(x * 1.0 / z, y * 1.0 / z);
-}
-
-// 求旋转矩形四点中心
-cv::Point2f Position::getCenterPoint(const cv::Point2f pts[]) {
-    static cv::Point2f center;
-    center.x = (pts[0].x + pts[1].x + pts[2].x + pts[3].x) / 4.0;
-    center.y = (pts[0].y + pts[1].y + pts[2].y + pts[3].y) / 4.0;
-    return center;
-}
-// 求矩形中心点
-cv::Point2f Position::getCenterPoint(const cv::Rect &rect) {
-    static cv::Point2f center;
-    center.x = rect.x + cvRound(rect.width  / 2.0);
-    center.y = rect.y + cvRound(rect.height / 2.0);
-    return center;
-}
-
 
 void Position::fixCarsPosition(cv::Point2f& car_position) {
-    // b_1 == 0  蓝方主哨岗
-    // b_2 == 1  蓝方副哨岗
-    // r_1 == 2  红方主哨岗
-    // r_2 == 3  红方副哨岗
-
+    // fix_position_method 数据矫正函数模式
+        // 0  蓝方[主哨岗] D1
+        // 1  蓝方[副哨岗] D3
+        // 2  红方[主哨岗] D4
+        // 3  红方[副哨岗] D2
     // 坐标轴翻转 至 能够合适地进行坐标误差矫正
-    if (this->fix_position_method_ == 0) {
+    if (this->position_config_.fix_position_method == 0) {
         flipVertical(car_position.y);
     }
-    else if (this->fix_position_method_ == 1) {
+    else if (this->position_config_.fix_position_method == 1) {
         flipVertical(car_position.y);
     }
-    else if (this->fix_position_method_ == 2) {
+    else if (this->position_config_.fix_position_method == 2) {
         flipDiagonal(car_position.x, car_position.y);
     }
-    else if (this->fix_position_method_ == 3) {
+    else if (this->position_config_.fix_position_method == 3) {
         flipDiagonal(car_position.x, car_position.y);
     }
 
     // 坐标误差矫正
-    static float watchDog   = 1730.0; // WATCH_DOG_H;   // 1768 -- 20cm*20cm*20cm -- 5kg
-    static float carHeight  = 250.0;  // CAR_HALF_H;
+    static float watchDog   = this->position_config_.watchtower_high;   // 1730.0; // WATCH_DOG_H;   // 1768 -- 20cm*20cm*20cm -- 5kg
+    static float carHeight  = this->position_config_.car_half_high;     // 250.0;  // CAR_HALF_H;
     static float nicetry    = carHeight / watchDog;
-    static float offset_x   = 9;   // OFFSET_X;
-    static float offset_y   = 12;  // OFFSET_Y;
+    static float offset_x   = this->position_config_.offset_x;          // 9;   // OFFSET_X;
+    static float offset_y   = this->position_config_.offset_y;          // 12;  // OFFSET_Y;
     car_position.x = (car_position.x + offset_x) * (1.0 - nicetry);
     car_position.y = (car_position.y + offset_y) * (1.0 - nicetry);
 
     // 坐标轴翻转 至 roboCar需要的坐标轴
-    if (this->fix_position_method_ == 0) {
+    if (this->position_config_.fix_position_method == 0) {
         flipVertical(car_position.y);
     }
-    else if (this->fix_position_method_ == 1) {
+    else if (this->position_config_.fix_position_method == 1) {
         flipHorizontal(car_position.x);
     }
-    else if (this->fix_position_method_ == 2) {
+    else if (this->position_config_.fix_position_method == 2) {
         // 不需要做任何操作
     }
-    else if (this->fix_position_method_ == 3) {
+    else if (this->position_config_.fix_position_method == 3) {
         flipDiagonal(car_position.x,      car_position.y);
     }
     // std::swap(carPosition.x,      carPosition.y);
     // std::swap(carPositionFixed.x, carPositionFixed.y);
+}
+
+
+Position::Position(PositionConfig position_config, cv::Mat warp_matrix, cv::Mat src_img) {
+    this->position_config_  = position_config;
+    this->warp_matrix_      = warp_matrix;
+    this->tool_img_         = src_img;
+}
+
+Position::~Position() {
+    this->cars_info_.clear();
+    this->armors_info_.clear();
 }
 
 std::vector<CarsInfo> Position::get_cars_info(std::vector<Yolo::Detection> &predicts) {
