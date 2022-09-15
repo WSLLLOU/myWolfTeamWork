@@ -1,0 +1,34 @@
+
+相机曝光
+[数字]:13000  // 如题 
+camera_exposure_time_
+
+当前哨岗身份 主/副
+0  "主哨岗"
+1  "副哨岗"
+watchtoer_identity_
+
+显示虚拟地图
+0  关闭
+1  开启
+// #define MAPINFO_OFF 1
+show_map_info_
+
+显示相机图片(并显示 |帧数|标志数据|坐标数据| )
+0  关闭
+1  开启
+// #define SHOW_IMG 1
+show_img_
+
+录制
+0  录制关闭
+1  录制开启
+// #define WRITER 0
+start_writer_img_
+
+录制视频目标路径
+string 路径
+// #define WRITER_DIR "../vedio/test.avi"
+writer_img_dir_
+# 05_17_drak_exp40000_sencond_3
+

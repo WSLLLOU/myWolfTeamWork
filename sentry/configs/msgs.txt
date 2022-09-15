@@ -1,0 +1,21 @@
+
+当前哨岗身份 主/副
+0  "主哨岗"
+1  "副哨岗"
+watchtoer_identity_
+
+发送 消息 IP (即本机在该网络上的IP)
+std::string tower_self_ip = tcp://*:5556
+tower_self_ip_
+
+接收 副哨岗 IP
+std::string other_tower_ip = "tcp://192.168.1.154:5556"
+other_tower_ip_
+
+接收 car_1 IP
+std::string car_1_ip = "tcp://192.168.1.66:5555"
+car_1_ip_
+
+接收 car2 IP
+std::string car_2_ip = "tcp://192.168.1.88:5555"
+car_2_ip_

@@ -1,32 +1,32 @@
 
-当前队伍身份 蓝/红
-0  "blue"   现在为蓝方
-1  "red"    现在为红方  
-temp_color_
-
-
 当前哨岗身份 主/副
 0  "主哨岗"
 1  "副哨岗"
 watchtoer_identity_
 
-
-同色同号判断严格程度
-0 "strict"     [严格]需要场上四台车都在, 但条件还是很严格(主哨岗连续检测+条件严格), 主哨岗检测不完全就不行;
-1 "relaxed"    [宽松]不限场上多少台车, 主哨岗能 `连续检测` 到一对同色同号即可, 但主哨岗检测不到还是不行;
-judge_same_color_num_mode_conditions_
-
-
 双哨岗数据融合--距离阈值
 [数字]:60  distanceCar  主副哨岗数据融合, 得出相同身份的两点, 相距大于该数值(60cm), 则认为不是同一台车
 merge_same_car_distance_
-
 
 [多帧]确定同色同号情况投票阈值
 // #define SAME_COLOR_NUM_FRAMES_THRESHOLD 35
 [数字]:35  连续联系 [多少帧] 才可判断为同色同号情况
 judge_same_color_num_mode_frames_thershold_
 
+同色同号判断严格程度
+0 "strict"     [严格]需要场上四台车都在, 但条件还是很严格(主哨岗连续检测+条件严格), 主哨岗检测不完全就不行;
+1 "relaxed"    [宽松]不限场上多少台车, 主哨岗能 `连续检测` 到一对同色同号即可, 但主哨岗检测不到还是不行;
+judge_same_color_num_mode_conditions_
+
+[多帧]确定卧底号数识别投票阈值
+// #define PANGOLIN_FRAMES_THRESHOLD 35
+[数字]:35  最少连续判断 [多少帧] 才可判断出卧底号数
+judge_discoloration_car_num_frames_thershold_
+
+当前队伍身份 蓝/红
+0  "blue"   现在为蓝方
+1  "red"    现在为红方  
+team_color_
 
 [单帧]卧底号数识别
 当Car1, Car2给哨岗发数据的时候, 可利用哨岗检测到的同样号数的坐标数据
@@ -34,12 +34,6 @@ judge_same_color_num_mode_frames_thershold_
 // #define PANGOLIN_DISTANCE_THRESHOLD 65
 [数字]:60  判断该车是否为己方的距离阈值
 judge_discoloration_car_num_distance_
-
-[多帧]确定卧底号数识别投票阈值
-// #define PANGOLIN_FRAMES_THRESHOLD 35
-[数字]:35  最少连续判断 [多少帧] 才可判断出卧底号数
-judge_discoloration_car_num_frames_thershold_
-
 
 [同色同号后--只发送敌方车辆坐标]
 同色同号后, 根据哨岗检测到的车辆坐标数据(同一个类别) 和 Car自身发给我的坐标数据 进行对比, 判断出那个坐标为敌方坐标

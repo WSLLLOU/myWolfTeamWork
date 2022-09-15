@@ -6,7 +6,6 @@
 3  红方[副哨岗] D2
 fix_position_method_
 
-
 哨岗相机离地高度 (mm)
 1730.0
 watchtower_high_ 
