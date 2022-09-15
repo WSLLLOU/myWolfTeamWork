@@ -17,13 +17,19 @@
 // // "red"    现在为红方
 // #define WHO_AM_I "red"
 
+struct GetWarpMatrixConfig {
+    int     click_point_method;
+    int     team_color;
+    GetWarpMatrixInfo(int cpm_, int tc_, cv::Mat wm_) : click_point_method(cpm_), team_color(tc_) {}
+};
+
 struct GetWarpMatrixInfo
 {
     int     click_point_method_;
-    int     temp_color_;
+    int     team_color_;
     cv::Mat warp_matrix_;
 
-    GetWarpMatrixInfo(int cpm_, int tc_, cv::Mat wm_) : click_point_method_(cpm_), temp_color_(tc_), warp_matrix_(wm_) {}
+    GetWarpMatrixInfo(int cpm_, int tc_, cv::Mat wm_) : click_point_method_(cpm_), team_color_(tc_), warp_matrix_(wm_) {}
 };
 
 class GetWarpMatrix {
@@ -32,10 +38,10 @@ class GetWarpMatrix {
         // 0 点四边玻璃罩子
         // 1 点中间各障碍物左下点
         int     click_point_method_;
-        // 当前身份 蓝/红
+        // 当前队伍身份 蓝/红
         // 0   "blue"   现在为蓝方
         // 1   "red"    现在为红方
-        int     temp_color_;     
+        int     team_color_;     
         // 旋转矩阵        
         cv::Mat warp_matrix_;   
 
@@ -45,10 +51,11 @@ class GetWarpMatrix {
         }
 
     public:
-        GetWarpMatrix(int click_point_method, int temp_color) {
+        GetWarpMatrix(GetWarpMatrixConfig get_warp_matrix_config) {
             this->warp_matrix_          = cv::Mat(3, 3, CV_64FC1);
-            this->click_point_method_   = click_point_method;
-            this->temp_color_           = temp_color;
+
+            this->click_point_method_   = get_warp_matrix_config.click_point_method;
+            this->team_color_           = get_warp_matrix_config.temp_color;
         }
 
         ~GetWarpMatrix() {}
@@ -80,14 +87,14 @@ class GetWarpMatrix {
                     cv::Point2f god_view[4];
 
                     if (info->click_point_method_ == 0) {
-                        if (info->temp_color_ == 0) {   // "blue"
+                        if (info->team_color_ == 0) {   // "blue"
                             god_view[0] = cv::Point2f(100, 808-638);
                             god_view[1] = cv::Point2f(348, 100);
                             god_view[2] = cv::Point2f(100, 708);
                             god_view[3] = cv::Point2f(348, 808-150);
                             // god_view[] 	= { cv::Point2f(100, 808-638), cv::Point2f(348, 100), cv::Point2f(100, 708), cv::Point2f(348, 808-150) };
                         }
-                        if (info->temp_color_ == 1) {   // "red"
+                        if (info->team_color_ == 1) {   // "red"
                             god_view[0] = cv::Point2f(100,      808-638);
                             god_view[1] = cv::Point2f(348,      100);
                             god_view[2] = cv::Point2f(100+20,   708);
@@ -111,7 +118,7 @@ class GetWarpMatrix {
 
         // 获取透视变换矩阵
         cv::Mat get_warp_matrix(cv::Mat& img) {
-            GetWarpMatrixInfo* user_info = new GetWarpMatrixInfo(this->click_point_method_, this->temp_color_, this->warp_matrix_);
+            GetWarpMatrixInfo* user_info = new GetWarpMatrixInfo(this->click_point_method_, this->team_color_, this->warp_matrix_);
             
             while(true) {
                 cv::imshow("click_point", img);
