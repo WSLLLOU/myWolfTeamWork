@@ -56,11 +56,11 @@ ReceiveInfo Msgs::receiveInfo(ReceiveInfo &receive_info, zmq::socket_t &subscrib
 }
 
 ReceiveInfo Msgs::get_receive_info() {
-    return receiveInfo(this->receive_info_, this->subscriber_receive_other_tower, this->subscriber_receive_car_1, this->subscriber_receive_car_2);
+    return receiveInfo(this->receive_info_, this->subscriber_receive_other_tower_, this->subscriber_receive_car_1_, this->subscriber_receive_car_2_);
 }
 
-void Msgs::send_info(WatchtowerInfo &tower_info, zmq::socket_t &publisher_send_info) {
-    if (this->msgs_config_.watchtoer_identity == 0) {
+void Msgs::sendInfo(WatchtowerInfo &tower_info, int watchtower_identity, zmq::socket_t &publisher_send_info) {
+    if (watchtower_identity == 0) {
 
         this->send_to_car_info_ = SendToCarInfo(
             tower_info.swap_color_mode,
@@ -77,7 +77,7 @@ void Msgs::send_info(WatchtowerInfo &tower_info, zmq::socket_t &publisher_send_i
         memcpy(send_message.data(), &this->send_to_car_info_, sizeof(SendToCarInfo));
         publisher_send_info.send(send_message);
 
-    } else if (this->msgs_config_.watchtoer_identity == 1) {
+    } else if (watchtower_identity == 1) {
 
         zmq::message_t send_message(sizeof(WatchtowerInfo));
         memcpy(send_message.data(), &tower_info, sizeof(WatchtowerInfo));
@@ -86,31 +86,34 @@ void Msgs::send_info(WatchtowerInfo &tower_info, zmq::socket_t &publisher_send_i
     }
 }
 
+void Msgs::send_info(WatchtowerInfo &tower_info) {
+    sendInfo(tower_info, this->msgs_config_.watchtower_identity, this->publisher_send_info_);
+}
 
 Msgs::Msgs(MsgsConfig msgs_config) {
     this->msgs_config_ = msgs_config;
 
     zmq::context_t send_context_cars_info(1);
-    this->publisher_send_info = zmq::socket_t(send_context_cars_info, zmq::socket_type::pub);
-    this->publisher_send_info.bind(this->msgs_config_.tower_self_ip);
+    this->publisher_send_info_ = zmq::socket_t(send_context_cars_info, zmq::socket_type::pub);
+    this->publisher_send_info_.bind(this->msgs_config_.tower_self_ip);
 
-    if (this->msgs_config_.watchtoer_identity == 0) {
+    if (this->msgs_config_.watchtower_identity == 0) {
         zmq::context_t receive_context_tower_info(1);
-        this->subscriber_receive_other_tower = zmq::socket_t(receive_context_tower_info, ZMQ_SUB);
-        this->subscriber_receive_other_tower.connect(this->msgs_config_.other_tower_ip);    // "tcp://192.168.1.154:5556"
-        this->subscriber_receive_other_tower.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+        this->subscriber_receive_other_tower_ = zmq::socket_t(receive_context_tower_info, ZMQ_SUB);
+        this->subscriber_receive_other_tower_.connect(this->msgs_config_.other_tower_ip);    // "tcp://192.168.1.154:5556"
+        this->subscriber_receive_other_tower_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
         // 初始化 接收 car_1_info
         zmq::context_t receive_context_car_1_info(1);
-        this->subscriber_receive_car_1 = zmq::socket_t(receive_context_car_1_info, ZMQ_SUB);
-        this->subscriber_receive_car_1.connect(this->msgs_config_.car_1_ip);    // "tcp://192.168.1.66:5555"
-        this->subscriber_receive_car_1.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+        this->subscriber_receive_car_1_ = zmq::socket_t(receive_context_car_1_info, ZMQ_SUB);
+        this->subscriber_receive_car_1_.connect(this->msgs_config_.car_1_ip);    // "tcp://192.168.1.66:5555"
+        this->subscriber_receive_car_1_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
         // 初始化 接收 car_2_info
         zmq::context_t receive_context_car_2_info(1);
-        this->subscriber_receive_car_2 = zmq::socket_t(receive_context_car_2_info, ZMQ_SUB);
-        this->subscriber_receive_car_2.connect(this->msgs_config_.car_2_ip);    // "tcp://192.168.1.89:5555"
-        this->subscriber_receive_car_2.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+        this->subscriber_receive_car_2_ = zmq::socket_t(receive_context_car_2_info, ZMQ_SUB);
+        this->subscriber_receive_car_2_.connect(this->msgs_config_.car_2_ip);    // "tcp://192.168.1.89:5555"
+        this->subscriber_receive_car_2_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
     }
 }
 

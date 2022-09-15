@@ -74,7 +74,7 @@ struct SendToCarInfo {
 };
 
 struct MsgsConfig {
-    int         watchtoer_identity; // 0主 / 1副
+    int         watchtower_identity; // 0主 / 1副
 
     std::string tower_self_ip;
 
@@ -82,8 +82,8 @@ struct MsgsConfig {
     std::string car_1_ip;
     std::string car_2_ip;
 
-    MsgsConfig() : watchtoer_identity(-1), tower_self_ip(""), other_tower_ip(""), car_1_ip(""), car_2_ip("") {}
-    MsgsConfig(int wd_, std::string tsi_, std::string oti_, std::string c1i_, std::string c2i_) : watchtoer_identity(wd_), tower_self_ip(tsi_), other_tower_ip(oti_), car_1_ip(c1i_), car_2_ip(c2i_) {}
+    MsgsConfig() : watchtower_identity(-1), tower_self_ip(""), other_tower_ip(""), car_1_ip(""), car_2_ip("") {}
+    MsgsConfig(int wd_, std::string tsi_, std::string oti_, std::string c1i_, std::string c2i_) : watchtower_identity(wd_), tower_self_ip(tsi_), other_tower_ip(oti_), car_1_ip(c1i_), car_2_ip(c2i_) {}
 };
 
 class Msgs {
@@ -94,23 +94,25 @@ private:
     
     SendToCarInfo   send_to_car_info_;
 
-    zmq::socket_t   publisher_send_info;
+    zmq::socket_t   publisher_send_info_;
 
-    zmq::socket_t   subscriber_receive_other_tower;
-    zmq::socket_t   subscriber_receive_car_1;
-    zmq::socket_t   subscriber_receive_car_2;
+    zmq::socket_t   subscriber_receive_other_tower_;
+    zmq::socket_t   subscriber_receive_car_1_;
+    zmq::socket_t   subscriber_receive_car_2_;
 
 private:
     ReceiveCarInfo              receiveCarInfo(ReceiveCarInfo &receive_car_info, zmq::socket_t &subscriber_receive_car);
     ReceiveOtherWatchtowerInfo  receiveOtherWatchtowerInfo(ReceiveOtherWatchtowerInfo &receive_tower_info, zmq::socket_t &subscriber_receive_other_tower);
     ReceiveInfo                 receiveInfo(ReceiveInfo &receive_info_, zmq::socket_t &subscriber_receive_other_tower, zmq::socket_t &subscriber_receive_car_1, zmq::socket_t &subscriber_receive_car_2);
 
+    void                        sendInfo(WatchtowerInfo &tower_info, int watchtoer_identity, zmq::socket_t &publisher_send_info);
+
 public:
     Msgs(MsgsConfig msgs_config);
     ~Msgs();
     
     ReceiveInfo                 get_receive_info();
-    void                        send_info(WatchtowerInfo &tower_info, zmq::socket_t &publisher_send_info);
+    void                        send_info(WatchtowerInfo &tower_info);
 };
 
 #endif // SENTRY_MODULE_MSGS_MSGS_HPP_
