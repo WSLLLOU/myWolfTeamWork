@@ -20,7 +20,8 @@
 struct GetWarpMatrixConfig {
     int     click_point_method;
     int     team_color;
-    GetWarpMatrixInfo(int cpm_, int tc_, cv::Mat wm_) : click_point_method(cpm_), team_color(tc_) {}
+    GetWarpMatrixConfig() : click_point_method(-1), team_color(-1) {}
+    GetWarpMatrixConfig(int cpm_, int tc_, cv::Mat wm_) : click_point_method(cpm_), team_color(tc_) {}
 };
 
 struct GetWarpMatrixInfo
@@ -55,7 +56,7 @@ class GetWarpMatrix {
             this->warp_matrix_          = cv::Mat(3, 3, CV_64FC1);
 
             this->click_point_method_   = get_warp_matrix_config.click_point_method;
-            this->team_color_           = get_warp_matrix_config.temp_color;
+            this->team_color_           = get_warp_matrix_config.team_color;
         }
 
         ~GetWarpMatrix() {}
