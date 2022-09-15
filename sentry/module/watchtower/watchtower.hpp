@@ -94,23 +94,42 @@ struct WatchtowerInfo {
 struct CarSendWatchtower {
     cv::Point2f position;           // Car当前坐标
     bool        teammates_alive;    // 队友是否存活  false / true
+
+    CarSendWatchtower() : position(cv::Point2f(-1,-1)), teammates_alive(false) {}
 };
 
 struct ReceiveCarInfo {
     CarSendWatchtower robo_car_info;
     bool              comfirm_receipt;          // 本回合 是否 接收成功
+
+    ReceiveCarInfo() {
+        robo_car_info   = CarSendWatchtower();
+        comfirm_receipt = false;
+    }
 };
 
 struct ReceiveOtherWatchtowerInfo {
     WatchtowerInfo  other_tower_info;
     bool            comfirm_receipt;            // 本回合 是否 接收成功
     bool            other_tower_online;         // 副哨岗 是否 在线
+
+    ReceiveOtherWatchtowerInfo() {
+        other_tower_info    = WatchtowerInfo();
+        comfirm_receipt     = false;
+        other_tower_online  = false;
+    }
 };
 
 struct ReceiveInfo {
     ReceiveOtherWatchtowerInfo  receive_tower_info;
     ReceiveCarInfo              receive_car_1_info;
     ReceiveCarInfo              receive_car_2_info;
+
+    ReceiveInfo() {
+        receive_tower_info = ReceiveOtherWatchtowerInfo();
+        receive_car_1_info = ReceiveCarInfo();
+        receive_car_2_info = ReceiveCarInfo();
+    }
 };
 
 struct WatchtowerConfig {
