@@ -31,3 +31,13 @@ string 路径
 // #define WRITER_DIR "../vedio/test.avi"
 writer_img_dir_
 # 05_17_drak_exp40000_sencond_3
+
+yolov5模型路径
+"/home/wsl/myWolfTeamWork/sentry/module/model/weights/77_last.engine"
+std::string
+engine_path_
+
+
+本机相机 0 / 视频路径 string
+"/home/wsl/myWolfTeamWork/sentry/vedio/05_25--16_36_51.avi"
+__
