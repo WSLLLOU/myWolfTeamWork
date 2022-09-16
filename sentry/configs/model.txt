@@ -1,0 +1,21 @@
+
+engine 模型路径
+sentry/module/model/weights/77_last.engine
+
+模型网络规模 n, s, m, l, x
+s
+
+CLASS_NUM 模型分类数量 
+6
+
+INPUT_H 模型的输入图片高
+1280
+
+INPUT_W 模型的输入图片宽
+1280
+
+NMS_THRESH  nms
+0.7
+
+CONF_THRESH 置信度过滤
+0.75
