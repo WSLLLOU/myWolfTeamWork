@@ -14,6 +14,7 @@ void Visualize::show_img(cv::Mat &src, std::vector<Yolo::Detection> yolo_detecti
         cv::rectangle(src, r, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
         cv::putText(src, std::to_string((int)detection.class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0x00, 0xFF, 0x00), 2);
     }
+    cv::imshow("show_img_src_detection", src);
     cv::waitKey(1);
 }
 
@@ -82,13 +83,14 @@ void Visualize::show_visual_map(WatchtowerInfo &tower_info) {
 
 
 void Visualize::show_watchtower_info(WatchtowerInfo &tower_info) {
-    static cv::Mat whiteboard = ~ cv::Mat::zeros(808, 808, CV_8UC3);
-
-        cv::putText(whiteboard, "gray_num          : " + std::to_string(tower_info.gray_num),          cv::Point(50, 0),   cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
-        cv::putText(whiteboard, "swap_color_mode   : " + std::to_string(tower_info.swap_color_mode),   cv::Point(50, 50),  cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
-        cv::putText(whiteboard, "discoloration_num : " + std::to_string(tower_info.discoloration_num), cv::Point(50, 100), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
-        cv::putText(whiteboard, "gray_on_buff_F6   : " + std::to_string(tower_info.gray_on_buff_F6),   cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
-        cv::putText(whiteboard, "gray_on_buff_F1   : " + std::to_string(tower_info.gray_on_buff_F1),   cv::Point(50, 200), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+    static cv::Mat white = ~ cv::Mat::zeros(808, 808, CV_8UC3);
+    static cv::Mat whiteboard;
+    white.copyTo(whiteboard);
+        cv::putText(whiteboard, "gray_num          : " + std::to_string(tower_info.gray_num),          cv::Point(50, 50),   cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(whiteboard, "swap_color_mode   : " + std::to_string(tower_info.swap_color_mode),   cv::Point(50, 100),  cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(whiteboard, "discoloration_num : " + std::to_string(tower_info.discoloration_num), cv::Point(50, 150), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(whiteboard, "gray_on_buff_F6   : " + std::to_string(tower_info.gray_on_buff_F6),   cv::Point(50, 200), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(whiteboard, "gray_on_buff_F1   : " + std::to_string(tower_info.gray_on_buff_F1),   cv::Point(50, 250), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
 
         cv::putText(whiteboard, "blue1          :", cv::Point(50, 550), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
         cv::putText(whiteboard, std::to_string(int(tower_info.blue1.x)),         cv::Point(350, 550), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
@@ -108,12 +110,14 @@ void Visualize::show_watchtower_info(WatchtowerInfo &tower_info) {
 }
 
 void Visualize::show_receive_info(ReceiveInfo &receive_info) {
-    static cv::Mat whiteboard = ~ cv::Mat::zeros(808, 808, CV_8UC3);
+    static cv::Mat white = ~ cv::Mat::zeros(808, 808, CV_8UC3);
+    static cv::Mat whiteboard;
+    white.copyTo(whiteboard);
 
         // cv::putText(whiteboard, "FPS            : " + std::to_string(1000.0/diff),               cv::Point(50, 250), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
-        cv::putText(whiteboard, "副哨岗是否在线     : " + std::to_string(receive_info.receive_tower_info.other_tower_online),   cv::Point(50, 350), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
-        cv::putText(whiteboard, "是否接收到Car1信号 : " + std::to_string(receive_info.receive_car_1_info.comfirm_receipt),      cv::Point(50, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
-        cv::putText(whiteboard, "是否接收到Car2信号 : " + std::to_string(receive_info.receive_car_2_info.comfirm_receipt),      cv::Point(50, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(whiteboard, "other_tower_online?: " + std::to_string(receive_info.receive_tower_info.other_tower_online),   cv::Point(50, 350), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(whiteboard, "car_1_OK?          : " + std::to_string(receive_info.receive_car_1_info.comfirm_receipt),      cv::Point(50, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
+        cv::putText(whiteboard, "car_2_OK?          : " + std::to_string(receive_info.receive_car_2_info.comfirm_receipt),      cv::Point(50, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
 
         cv::putText(whiteboard, "car1      :", cv::Point(450, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
         cv::putText(whiteboard, std::to_string(int(receive_info.receive_car_1_info.robo_car_info.position.x)),    cv::Point(650, 400), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
@@ -122,7 +126,7 @@ void Visualize::show_receive_info(ReceiveInfo &receive_info) {
         cv::putText(whiteboard, std::to_string(int(receive_info.receive_car_2_info.robo_car_info.position.x)),    cv::Point(650, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
         cv::putText(whiteboard, std::to_string(int(receive_info.receive_car_2_info.robo_car_info.position.y)),    cv::Point(750, 450), cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0x00, 0x00, 0xFF), 2);
     
-    cv::imshow("show_watchtower_info", whiteboard);
+    cv::imshow("show_receive_info", whiteboard);
     cv::waitKey(1);
 }
 
