@@ -19,44 +19,41 @@ link_directories(/usr/local/cuda/lib64)
 # tensorrt
 include_directories(/usr/include/x86_64-linux-gnu/)
 link_directories(/usr/lib/x86_64-linux-gnu/)
-
-# # camera
-# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/camera/)
-# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/module/camera/fmt)
-# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/camera//fmt/include)
-# add_library(mv_video_capture ${CMAKE_CURRENT_SOURCE_DIR}/module/camera/mv_video_capture.cpp)
-# include_directories(camera)
-# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/camera/utils/)
-# target_link_libraries(mv_video_capture
-#     PUBLIC
-#     fmt::fmt
-#     ${OpenCV_LIBS}
-#     ${CMAKE_CURRENT_SOURCE_DIR}/module/camera/x64/libMVSDK.so
-# )
+# cqqzmq
+find_package(cppzmq)
 
 # camera
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/camera/)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/module/camera/)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/module/camera/fmt)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/camera//fmt/include)
+add_library(mv_video_capture ${CMAKE_CURRENT_SOURCE_DIR}/module/camera/mv_video_capture.cpp)
+include_directories(camera)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/camera/utils/)
+target_link_libraries(mv_video_capture
+    PUBLIC
+    fmt::fmt
+    ${OpenCV_LIBS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/module/camera/x64/libMVSDK.so
+)
 
 # get_warp_matrix
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/)
 
-# # TensorRTx
-# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/model/TensorRTx/)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Ofast -g -Wfatal-errors -D_MWAITXINTRIN_H_INCLUDED")
-# cuda_add_library(myplugins SHARED ${CMAKE_CURRENT_SOURCE_DIR}/module/model/TensorRTx/yololayer.cu) # 生成动态库 myplugins
-# target_link_libraries(myplugins nvinfer cudart)
-# # 生成/×可×执×行×文×件×/ 动态库√ yolo, 基于calibrator.cpp preprocess.cu
-# cuda_add_library(yolo SHARED ${CMAKE_CURRENT_SOURCE_DIR}/module/model/TensorRTx/calibrator.cpp ${CMAKE_CURRENT_SOURCE_DIR}/module/model/TensorRTx/preprocess.cu) 
-# # 把nvinfer、cudart、myplugins 和 opencv库 -->(链接到) yolo
-# target_link_libraries(yolo nvinfer)
-# target_link_libraries(yolo cudart)
-# target_link_libraries(yolo myplugins)
-# target_link_libraries(yolo ${OpenCV_LIBS})
-
-# TensorRT
+# TensorRTx
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/model/TensorRTx/)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/module/model/TensorRTx)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Ofast -g -Wfatal-errors -D_MWAITXINTRIN_H_INCLUDED")
+cuda_add_library(myplugins SHARED ${CMAKE_CURRENT_SOURCE_DIR}/module/model/TensorRTx/yololayer.cu) # 生成动态库 myplugins
+target_link_libraries(myplugins nvinfer cudart)
+
+# 生成/×可×执×行×文×件×/ 动态库√ yolo, 基于calibrator.cpp preprocess.cu
+cuda_add_library(yolo SHARED ${CMAKE_CURRENT_SOURCE_DIR}/module/model/TensorRTx/calibrator.cpp ${CMAKE_CURRENT_SOURCE_DIR}/module/model/TensorRTx/preprocess.cu) 
+# 把nvinfer、cudart、myplugins 和 opencv库 -->(链接到) yolo
+target_link_libraries(yolo nvinfer)
+target_link_libraries(yolo cudart)
+target_link_libraries(yolo myplugins)
+target_link_libraries(yolo ${OpenCV_LIBS})
 
 # position
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/position/)
@@ -70,9 +67,6 @@ cuda_add_library(watchtower SHARED ${CMAKE_CURRENT_SOURCE_DIR}/module/watchtower
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/msgs/)
 cuda_add_library(msgs SHARED ${CMAKE_CURRENT_SOURCE_DIR}/module/msgs/msgs.cpp)
 
-# cqqzmq
-find_package(cppzmq)
-
 # visualize
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/module/visualize/)
 cuda_add_library(visualize SHARED ${CMAKE_CURRENT_SOURCE_DIR}/module/visualize/visualize.cpp)
@@ -84,13 +78,13 @@ find_package(Threads)
 add_executable(main main.cpp)
 # link
 target_link_libraries(main
-    ${OpenCV_LIBS}
     mv_video_capture
     yolo 
     position 
     watchtower 
     msgs
-    cppzmq
     visualize
+    cppzmq
+    ${OpenCV_LIBS}
     ${CMAKE_THREAD_LIBS_INIT}
 )
