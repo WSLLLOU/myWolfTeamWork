@@ -21,7 +21,7 @@ struct GetWarpMatrixConfig {
     int     click_point_method;
     int     team_color;
     GetWarpMatrixConfig() : click_point_method(-1), team_color(-1) {}
-    GetWarpMatrixConfig(int cpm_, int tc_, cv::Mat wm_) : click_point_method(cpm_), team_color(tc_) {}
+    GetWarpMatrixConfig(int cpm_, int tc_) : click_point_method(cpm_), team_color(tc_) {}
 };
 
 struct GetWarpMatrixInfo
