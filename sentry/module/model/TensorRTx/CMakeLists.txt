@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-project(yolov5)
+project(yolo)
 
 add_definitions(-std=c++11)
 add_definitions(-DAPI_EXPORTS)
@@ -30,14 +30,14 @@ target_link_libraries(myplugins nvinfer cudart) # nvinfer cudart 是 TensorRT的
 find_package(OpenCV)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-# 生成/×可×执×行×文×件×/ 动态库√ yolov5, 基于calibrator.cpp preprocess.cu
-cuda_add_library(yolov5 SHARED calibrator.cpp preprocess.cu) 
+# 生成/×可×执×行×文×件×/ 动态库√ yolo, 基于calibrator.cpp preprocess.cu
+cuda_add_library(yolo SHARED calibrator.cpp preprocess.cu) 
 
-# 把nvinfer、cudart、myplugins 和 opencv库 -->(链接到) yolov5
-target_link_libraries(yolov5 nvinfer)
-target_link_libraries(yolov5 cudart)
-target_link_libraries(yolov5 myplugins)
-target_link_libraries(yolov5 ${OpenCV_LIBS})
+# 把nvinfer、cudart、myplugins 和 opencv库 -->(链接到) yolo
+target_link_libraries(yolo nvinfer)
+target_link_libraries(yolo cudart)
+target_link_libraries(yolo myplugins)
+target_link_libraries(yolo ${OpenCV_LIBS})
 
 if(UNIX)
 add_definitions(-O2 -pthread)
