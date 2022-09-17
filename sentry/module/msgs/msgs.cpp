@@ -36,14 +36,13 @@ ReceiveOtherWatchtowerInfo Msgs::receiveOtherWatchtowerInfo(ReceiveOtherWatchtow
     }
 
     now_time    = std::chrono::system_clock::now();     // 当前时间
-    diiff_time  = std::chrono::duration_cast<std::chrono::milliseconds>(last_time - now_time).count();
+    diiff_time  = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - last_time).count();
     // 若最后一次副哨岗信息距今超过1000ms(1s), 判断副哨岗掉线 
     if (diiff_time < 1000) {
         receive_tower_info.other_tower_online = true;
     } else {
         receive_tower_info.other_tower_online = false;
     }
-
     return receive_tower_info;
 }
 
@@ -93,25 +92,25 @@ void Msgs::send_info(WatchtowerInfo &tower_info) {
 Msgs::Msgs(MsgsConfig msgs_config) {
     this->msgs_config_ = msgs_config;
 
-    zmq::context_t send_context_cars_info(1);
-    this->publisher_send_info_ = zmq::socket_t(send_context_cars_info, zmq::socket_type::pub);
+    this->send_context_cars_info_ = zmq::context_t(1);
+    this->publisher_send_info_ = zmq::socket_t(send_context_cars_info_, zmq::socket_type::pub);
     this->publisher_send_info_.bind(this->msgs_config_.tower_self_ip);
-
-    if (this->msgs_config_.watchtower_identity == 0) {
-        zmq::context_t receive_context_tower_info(1);
-        this->subscriber_receive_other_tower_ = zmq::socket_t(receive_context_tower_info, ZMQ_SUB);
+    
+    if (this->msgs_config_.watchtower_identity == 0) { // 主哨岗
+        this->receive_context_tower_info_ = zmq::context_t(1);
+        this->subscriber_receive_other_tower_ = zmq::socket_t(this->receive_context_tower_info_, ZMQ_SUB);
         this->subscriber_receive_other_tower_.connect(this->msgs_config_.other_tower_ip);    // "tcp://192.168.1.154:5556"
         this->subscriber_receive_other_tower_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
         // 初始化 接收 car_1_info
-        zmq::context_t receive_context_car_1_info(1);
-        this->subscriber_receive_car_1_ = zmq::socket_t(receive_context_car_1_info, ZMQ_SUB);
+        this->receive_context_car_1_info_ = zmq::context_t(1);
+        this->subscriber_receive_car_1_ = zmq::socket_t(this->receive_context_car_1_info_, ZMQ_SUB);
         this->subscriber_receive_car_1_.connect(this->msgs_config_.car_1_ip);    // "tcp://192.168.1.66:5555"
         this->subscriber_receive_car_1_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
         // 初始化 接收 car_2_info
-        zmq::context_t receive_context_car_2_info(1);
-        this->subscriber_receive_car_2_ = zmq::socket_t(receive_context_car_2_info, ZMQ_SUB);
+        this->receive_context_car_2_info_ = zmq::context_t(1);
+        this->subscriber_receive_car_2_ = zmq::socket_t(this->receive_context_car_2_info_, ZMQ_SUB);
         this->subscriber_receive_car_2_.connect(this->msgs_config_.car_2_ip);    // "tcp://192.168.1.89:5555"
         this->subscriber_receive_car_2_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
     }

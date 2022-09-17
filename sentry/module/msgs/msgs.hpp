@@ -94,10 +94,14 @@ private:
     
     SendToCarInfo   send_to_car_info_;
 
+    zmq::context_t  send_context_cars_info_;
     zmq::socket_t   publisher_send_info_;
 
+    zmq::context_t  receive_context_tower_info_;
     zmq::socket_t   subscriber_receive_other_tower_;
+    zmq::context_t  receive_context_car_1_info_;
     zmq::socket_t   subscriber_receive_car_1_;
+    zmq::context_t  receive_context_car_2_info_;
     zmq::socket_t   subscriber_receive_car_2_;
 
 private:
