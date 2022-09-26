@@ -130,7 +130,7 @@ mtx.unlock();
 }
 
 int main() {
-    fs_read["watchtower_identity"]            >> watchtower_identity;
+    fs_read["watchtower_identity_"]           >> watchtower_identity;
     fs_read["team_color_"]                    >> team_color;
     fs_read["fix_position_method_"]           >> fix_position_method;
     fs_read["click_point_method_"]            >> click_point_method;
