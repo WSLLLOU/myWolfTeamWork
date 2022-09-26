@@ -2,8 +2,20 @@
 engine 模型路径
 sentry/module/model/weights/77_last.engine
 
-模型网络规模 n, s, m, l, x
+模型网络规模 n, s, m, l, x, n6, s6, m6, l6, x6, c/c6 gd gw
 s
+模型网络规模
+// n 0.33  0.25
+// s 0.33  0.50
+// m 9.67  0.75
+// l 1.00  1.00
+// x 1.33  1.25
+float gd = 0.33f;
+float gw = 0.50f;
+模型网络规模
+// n6 s6 m6 l6 x6 true
+// n  s  m  l  x  false
+bool is_p6 = false;
 
 CLASS_NUM 模型分类数量 
 6
